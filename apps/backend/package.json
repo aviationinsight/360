@@ -1,0 +1,10 @@
+{
+  "name": "@aviation/backend",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "cd ../.. && node --import tsx --watch apps/backend/src/index.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "cd ../.. && node apps/backend/dist/apps/backend/src/index.js"
+  }
+}

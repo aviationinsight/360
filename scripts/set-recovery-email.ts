@@ -1,0 +1,10 @@
+import {eq} from 'drizzle-orm';
+import {z} from 'zod';
+import {db,client} from '../apps/backend/src/db.js';
+import {user} from '../database/schema/index.js';
+const username=z.string().min(3).parse(process.argv[2]);
+const email=z.string().email().parse(process.argv[3]);
+const existing=(await db.select({id:user.id}).from(user).where(eq(user.username,username)))[0];
+if(!existing)throw new Error('Username not found');
+await db.update(user).set({email,emailVerified:false,updatedAt:new Date()}).where(eq(user.id,existing.id));
+console.log('Recovery email assigned. Verify ownership before running this owner-only command.');client.close();

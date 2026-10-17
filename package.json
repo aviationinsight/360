@@ -1,0 +1,55 @@
+{
+  "name": "aviation-insight",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently -k \"npm run dev -w apps/backend\" \"npm run dev -w apps/frontend\"",
+    "build": "npm run build -w apps/frontend && npm run build -w apps/backend",
+    "typecheck": "tsc --noEmit",
+    "test": "node --import tsx --test tests/*.test.ts",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "node --import tsx scripts/migrate.ts",
+    "db:import": "node --import tsx database/import/import.ts",
+    "db:seed": "node --import tsx database/seeds/admin.ts",
+    "report:tick": "node --import tsx scripts/report-tick.ts"
+  },
+  "dependencies": {
+    "@hono/node-server": "2.1.5",
+    "@libsql/client": "0.18.0",
+    "better-auth": "1.7.10",
+    "dotenv": "18.0.8",
+    "drizzle-orm": "0.45.4",
+    "hono": "4.13.13",
+    "jszip": "3.10.2",
+    "lucide-react": "1.59.0",
+    "nodemailer": "10.1.2",
+    "playwright": "1.64.1",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "react-router-dom": "7.18.4",
+    "three": "0.186.1",
+    "tw-animate-css": "1.4.0",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "4.3.3",
+    "@types/node": "26.6.5",
+    "@types/nodemailer": "8.0.2",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "6.1.2",
+    "concurrently": "10.0.6",
+    "drizzle-kit": "0.31.11",
+    "tailwindcss": "4.3.3",
+    "tsx": "4.23.15",
+    "typescript": "7.0.2",
+    "vite": "8.3.4"
+  },
+  "engines": {
+    "node": ">=22.13.0"
+  }
+}

@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="80 180 800 540" fill="none">
+<title>Aviation Insight</title>
+<defs><mask id="aircraft"><rect x="80" y="180" width="800" height="540" fill="white"/><path d="M786 231 807 218 839 217 831 225 802 239Z" fill="black"/><path d="M526 414 571 379 562 421 519 455Z M584 370 628 344 619 387 577 418Z" fill="black"/></mask></defs>
+<g fill="#bd0027" mask="url(#aircraft)">
+<path d="M121 578 646 312Q735 254 789 221Q822 201 851 216Q866 224 850 241Q770 320 698 351L635 372Q528 458 344 542L219 583 175 597Z"/>
+<path d="M139 268 150 264 191 294 504 362 398 428 182 307Z"/>
+<path d="M605 469 639 454 680 662Q679 675 670 671L508 518Z"/>
+<path d="M99 488 121 482 244 523 179 558 128 527Z"/>
+<path d="M188 609 257 591 219 671 188 690Z"/>
+<path d="M461 344 530 298Q540 292 551 308L560 331 543 340Z"/>
+<path d="M621 451 659 413Q672 399 684 417L696 448Q699 460 687 467L654 486Z"/>
+</g>
+<path d="M532 301Q546 307 551 326" stroke="white" stroke-width="6" stroke-linecap="round"/>
+<path d="M666 408Q680 416 687 444" stroke="white" stroke-width="7" stroke-linecap="round"/>
+</svg>

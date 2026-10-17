@@ -1,0 +1,19 @@
+[build]
+  command = "npm ci && node scripts/configure-netlify.mjs && npm run build -w apps/frontend"
+  publish = "apps/frontend/dist"
+[build.environment]
+  NODE_VERSION = "22"
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "no-cache"
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "same-origin"
+    X-Frame-Options = "SAMEORIGIN"
+[[headers]]
+  for = "/api/*"
+  [headers.values]
+    Cache-Control = "private, no-store"
