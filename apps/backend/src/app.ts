@@ -38,7 +38,7 @@ app.get('/health/ready',async c=>{await client.execute('SELECT 1');return c.json
 app.use('*',async(c,next)=>{
  const grant=await reportGrant(c.req.raw,env);c.set('grant',grant);
  const info=await auth.api.getSession({headers:c.req.raw.headers});let principal:Principal|null=null;
- if(info){const rows=await db.select().from(user).where(eq(user.id,info.user.id));const u=rows[0];if(u?.active){const access=await db.select().from(permission).where(eq(permission.userId,u.id));principal={id:u.id,name:u.name,role:u.role as Principal['role'],canExport:u.canExport,permissions:Object.fromEntries(dashboardKeys.map(k=>[k,u.role==='admin'||(u.role==='general'&&k!=='permits')||access.some(p=>p.dashboard===k&&p.allowed)])) as Principal['permissions']}}}
+ if(info){const rows=await db.select().from(user).where(eq(user.id,info.user.id));const u=rows[0];if(u?.active){const access=await db.select().from(permission).where(eq(permission.userId,u.id));principal={id:u.id,name:u.name,role:u.role as Principal['role'],canExport:u.role==='admin'||u.canExport,permissions:Object.fromEntries(dashboardKeys.map(k=>[k,u.role==='admin'||(u.role==='general'&&k!=='permits')||access.some(p=>p.dashboard===k&&p.allowed)])) as Principal['permissions']}}}
  c.set('principal',principal);await next();
 });
 app.all('/api/auth/*',async c=>{
