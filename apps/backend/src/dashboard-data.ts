@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto';
 
 export const datasets = ['amos', 'fak', 'aog', 'marshaling'];
 const origin = process.env.SYNC_ORIGIN || 'https://aviation-dashboard-sync.aviationinsight4.workers.dev';
-type DataEnv = { REPORT_FILES: R2Bucket };
+type DataEnv = { REPORT_FILES: ObjectStore };
 type Manual = { dashboard: string; fileName: string; size: number; updatedAt: string; source: 'manual'; key: string };
 const pointer = (dashboard: string) => `dashboard-data/${dashboard}/latest.json`;
 const json = (data: unknown, status = 200) => Response.json(data, { status, headers: { 'Cache-Control': 'no-store' } });
@@ -27,7 +27,7 @@ export async function currentData(env: DataEnv, dashboard: string) {
   return { metadata: automatic ? { ...automatic, dashboard, source: 'automatic' } : null, manual: null };
 }
 
-const workbookDownloads = new WeakMap<R2Bucket, Map<string, Promise<ArrayBuffer>>>();
+const workbookDownloads = new WeakMap<ObjectStore, Map<string, Promise<ArrayBuffer>>>();
 const workbookHeaders = { 'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'Cache-Control': 'no-store' };
 async function automaticWorkbook(env: DataEnv, dashboard: string, metadata: Record<string, unknown> | null): Promise<ArrayBuffer> {
   const version = String(metadata?.updatedAt || '');

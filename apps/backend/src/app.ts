@@ -3,8 +3,7 @@ import {cors} from 'hono/cors';
 import {secureHeaders} from 'hono/secure-headers';
 import {bodyLimit} from 'hono/body-limit';
 import {eq,and,sql} from 'drizzle-orm';
-import {readFile} from 'node:fs/promises';
-import {resolve} from 'node:path';
+import {privateDashboard} from './private-dashboard.js';
 import {z} from 'zod';
 import {timingSafeEqual,randomUUID} from 'node:crypto';
 import {db,client,legacyDB} from './db.js';
@@ -79,7 +78,7 @@ app.get('/api/dashboard-sync/:dashboard/:resource',async c=>{
 app.post('/api/dashboard-sync/client-event',async c=>{if(!c.get('principal')&&!c.get('grant'))return c.json({error:'Unauthorized'},401);z.object({dashboard:z.string().max(12),status:z.string().max(24)}).passthrough().parse(await c.req.json());return c.body(null,204)});
 app.get('/secure-dashboard',async c=>{
  const d=c.req.query('tab')||'amos',p=c.get('principal'),grant=c.get('grant');if(!dashboardKeys.includes(d as never))return c.json({error:'Not found'},404);if(!p&&grant?.dashboard!==d)return c.redirect('/login',303);if(p&&!p.permissions[d as keyof typeof p.permissions])return c.json({error:'Forbidden'},403);if(c.req.query('export')==='1'&&!p?.canExport&&grant?.dashboard!==d)return c.json({error:'Export forbidden'},403);
- let html=await readFile(resolve(process.env.PRIVATE_SOURCE_DIR||'apps/backend/private',d==='permits'?'permits-dashboard.html':'dashboard-source.html'),'utf8');
+ let html=await privateDashboard(d);
  if(d!=='permits'){
   // Do not send other departments' embedded baseline records to restricted accounts.
   for(const key of ['amos','aog','fak','marshaling'])if(key!==d)html=html.replace(new RegExp('(<script type="application/json" id="data-'+key+'">)[\\s\\S]*?(</script>)'),'$1""$2');

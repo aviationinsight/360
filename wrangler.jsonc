@@ -1,0 +1,17 @@
+{
+ "$schema":"node_modules/wrangler/config-schema.json",
+ "name":"aviation-insight",
+ "main":"dist/worker/index.js",
+ "compatibility_date":"2026-10-19",
+ "compatibility_flags":["nodejs_compat"],
+ "assets":{
+  "directory":"apps/frontend/dist",
+  "binding":"ASSETS",
+  "not_found_handling":"single-page-application",
+  "run_worker_first":["/api/*","/secure-dashboard","/health/*"]
+ },
+ "r2_buckets":[{"binding":"REPORT_FILES","bucket_name":"aviation-insight-files"}],
+ "browser":{"binding":"BROWSER"},
+ "vars":{"NODE_ENV":"production","REPORT_EMAIL_ENABLED":"false"},
+ "observability":{"enabled":true}
+}

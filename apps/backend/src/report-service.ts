@@ -6,7 +6,7 @@ import { workbookDates } from './report-dates.js';
 export const reportDashboards=['amos','fak','aog','marshaling'];
 const syncOrigin=process.env.SYNC_ORIGIN || 'https://aviation-dashboard-sync.aviationinsight4.workers.dev';
 const siteOrigin=process.env.PUBLIC_ORIGIN!;
-export interface ReportEnv { DB:D1Database; REPORT_FILES:R2Bucket; REPORT_SYNC_SECRET?:string; REPORT_EMAIL_HOOK?:string; REPORT_EMAIL_ENABLED?:string; }
+export interface ReportEnv { DB:LegacyDatabase; REPORT_FILES:ObjectStore; REPORT_SYNC_SECRET?:string; REPORT_EMAIL_HOOK?:string; REPORT_EMAIL_ENABLED?:string; }
 type Job={id:string;period_start:string;period_end:string;status:string;stage:number;test_mode:number;updated_at:string;error:string|null;download_token:string};
 const json=(data:unknown,status=200)=>Response.json(data,{status,headers:{'Cache-Control':'no-store'}});
 const hex=(bytes:ArrayBuffer)=>Array.from(new Uint8Array(bytes),b=>b.toString(16).padStart(2,'0')).join('');
