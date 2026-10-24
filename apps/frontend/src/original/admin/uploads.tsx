@@ -27,6 +27,10 @@ export function DashboardUploads() {
     try {
       const form = new FormData(); form.append('dashboard', dashboard); form.append('file', file);
       const response = await fetch('/api/admin/dashboard-data', { method: 'POST', body: form });
+      if (!response.headers.get('content-type')?.includes('application/json')) {
+        const reference = response.headers.get('cf-ray');
+        throw new Error(`The upload service returned an unexpected response (HTTP ${response.status}).${reference ? ` Reference: ${reference}.` : ''} Please check the server logs before retrying.`);
+      }
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Upload failed. Please try again.');
       setSuccess(true); setMessage(`${dashboard.toUpperCase()} updated successfully. Open the dashboard to view the latest data.`);
