@@ -9,7 +9,7 @@ export function CinematicExperience() {
 
   useEffect(() => {
     const started = performance.now();
-    const duration = 2600;
+    const duration = 200;
     let frame = 0;
 
     const tick = (now: number) => {
@@ -17,7 +17,7 @@ export function CinematicExperience() {
       const eased = 1 - Math.pow(1 - ratio, 3);
       setProgress(Math.max(1, Math.round(eased * 100)));
       if (ratio < 1) frame = requestAnimationFrame(tick);
-      else window.setTimeout(() => setComplete(true), 360);
+      else setComplete(true);
     };
 
     frame = requestAnimationFrame(tick);

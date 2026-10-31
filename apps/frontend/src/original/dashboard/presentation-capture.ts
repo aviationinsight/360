@@ -80,6 +80,11 @@ export function arrangePresentation(doc: Document, key: string) {
     .main{transform:none!important;max-width:none!important;min-width:0!important;margin:0!important}
     .render-pulse,.aviation-chart-updated{opacity:1!important;transform:none!important}
     .topbar{min-height:0!important}.topbar>div{min-height:0!important}
+    .story-head,.topbar{gap:24px!important;overflow:visible!important}
+    .story-head>div:first-child,.topbar>div:first-child{min-width:0!important;flex:1 1 auto!important}
+    .story-total{flex:0 0 auto!important;min-width:0!important;justify-content:flex-end!important;gap:20px!important}
+    .story-total>div{flex-shrink:0!important;white-space:nowrap!important}
+    .story-scope,.topbar .badge{box-sizing:border-box!important;flex:0 0 auto!important;width:max-content!important;max-width:none!important;min-width:640px!important;height:auto!important;white-space:nowrap!important;overflow-wrap:normal!important;font-size:18px!important;font-weight:700!important;line-height:1.3!important;padding:12px 22px!important;text-align:center!important}
     .priority-story.normal .route-track::after{content:'';width:26px;height:26px;top:7px;background:url('${truckIcon}') center/contain no-repeat}
     .story-head::after,.runway-headline::after{content:''!important;background:url('data:image/svg+xml,${encodeURIComponent(planeSVG.replace('currentColor', '#ffffff'))}') center/contain no-repeat!important;width:74px!important;height:74px!important;opacity:.08!important}
     .leaflet-control-container{display:none!important}
@@ -91,6 +96,9 @@ export function arrangePresentation(doc: Document, key: string) {
     .score-orbit,.priority-story.target-achieved .score-orbit,.mix-ring,.shift-dial{box-shadow:none!important;filter:none!important}
     .reach-main{box-shadow:none!important}
   `;
+  if (key === 'aog' && doc.querySelectorAll('.station-cards > .station-card').length >= 5) {
+    style.textContent += '.station-cards{grid-template-columns:repeat(3,minmax(0,1fr))!important}';
+  }
   doc.head.append(style);
   // Fit every AMOS store row into the approved table area, including longer lists.
   if (key === 'amos') {

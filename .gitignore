@@ -1,5 +1,4 @@
 node_modules/
-.wrangler/
 **/dist/
 .env
 .env.*
@@ -9,4 +8,5 @@ node_modules/
 database/import/exports/
 artifacts/
 
-apps/frontend/public/_redirects
+data/dashboard-sources/*.xlsx
+data/dashboard-sources/*.xlsm

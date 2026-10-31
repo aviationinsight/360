@@ -7,17 +7,17 @@
     "packages/*"
   ],
   "scripts": {
+    "build:portable": "node scripts/build-portable.mjs",
+    "build:desktop": "node scripts/build-portable.mjs",
+    "test:portable": "node scripts/test-desktop.mjs && node scripts/test-portable.mjs dist/portable/resources/app/runtime",
     "dev": "concurrently -k \"npm run dev -w apps/backend\" \"npm run dev -w apps/frontend\"",
     "build": "npm run build -w apps/frontend && npm run build -w apps/backend",
-    "build:cloudflare": "npm run build:remarks && npm run build -w apps/frontend && node scripts/build-worker.mjs",
-    "deploy:cloudflare": "npm run build:cloudflare && wrangler deploy",
     "typecheck": "tsc --noEmit",
     "test": "node --import tsx --test tests/*.test.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "node --import tsx scripts/migrate.ts",
     "db:import": "node --import tsx database/import/import.ts",
     "db:seed": "node --import tsx database/seeds/admin.ts",
-    "report:tick": "node --import tsx scripts/report-tick.ts",
     "test:dashboard": "node --test tests/dashboard-filtering.browser.mjs",
     "build:remarks": "node scripts/build-remarks-list.mjs",
     "prebuild": "npm run build:remarks"
@@ -31,8 +31,6 @@
     "hono": "4.13.13",
     "jszip": "3.10.2",
     "lucide-react": "1.59.0",
-    "nodemailer": "10.1.2",
-    "playwright": "1.64.1",
     "react": "19.3.1",
     "react-dom": "19.3.1",
     "react-router-dom": "7.18.4",
@@ -42,22 +40,21 @@
     "zod": "4.6.7"
   },
   "devDependencies": {
-    "@cloudflare/playwright": "^1.3.6",
-    "@cloudflare/workers-types": "^5.20261023.1",
     "@tailwindcss/vite": "4.3.3",
     "@types/node": "26.6.5",
-    "@types/nodemailer": "8.0.2",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
     "@vitejs/plugin-react": "6.1.2",
     "concurrently": "10.0.6",
     "drizzle-kit": "0.31.11",
+    "electron": "45.2.0",
     "esbuild": "^0.28.2",
+    "rcedit": "5.0.2",
     "tailwindcss": "4.3.3",
     "tsx": "4.23.15",
     "typescript": "7.0.2",
     "vite": "8.3.4",
-    "wrangler": "^4.152.0"
+    "playwright": "1.64.1"
   },
   "engines": {
     "node": ">=22.13.0"

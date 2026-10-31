@@ -20,8 +20,8 @@ export function DashboardUploads() {
   async function upload(event: React.FormEvent) {
     event.preventDefault();
     if (!file || busy) return;
-    if (!/\.xlsx$/i.test(file.name) || file.size > 25 * 1024 * 1024 || !file.size) {
-      setSuccess(false); setMessage('Choose a non-empty .xlsx file up to 25 MB.'); return;
+    if (!/\.xls[xm]$/i.test(file.name) || file.size > 25 * 1024 * 1024 || !file.size) {
+      setSuccess(false); setMessage('Choose a non-empty .xlsx or .xlsm file up to 25 MB.'); return;
     }
     setBusy(true); setSuccess(false); setMessage('Validating and saving Excel…');
     try {
@@ -39,13 +39,13 @@ export function DashboardUploads() {
     finally { setBusy(false); }
   }
   return <section className="manual-data-section" aria-labelledby="manual-data-heading">
-    <div className="manual-data-heading"><div><span className="eyebrow">DATA MANAGEMENT</span><h2 id="manual-data-heading">Manual Excel update</h2><p>Keep your dashboards current when automatic sync is unavailable.</p></div><UploadCloud size={32} aria-hidden="true" /></div>
+    <div className="manual-data-heading"><div><span className="eyebrow">DATA MANAGEMENT</span><h2 id="manual-data-heading">Manual Excel update</h2><p>Project Excel workbooks load automatically when the desktop app starts.</p></div><UploadCloud size={32} aria-hidden="true" /></div>
     <div className="manual-data-grid"><form onSubmit={upload} className="manual-upload-form">
       <label htmlFor="upload-dashboard">Dashboard</label><select id="upload-dashboard" value={dashboard} disabled={busy} onChange={event => { setDashboard(event.target.value); setMessage(''); }}>{dashboards.map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select>
-      <label htmlFor="upload-excel">Excel workbook</label><div className="manual-file-picker"><FileSpreadsheet size={28} aria-hidden="true" /><input ref={input} id="upload-excel" type="file" accept=".xlsx" disabled={busy} onChange={event => { setFile(event.target.files?.[0] || null); setMessage(''); }} /><small>Use the usual workbook and sheet structure · Maximum 25 MB</small></div>
-      <p className="manual-data-note">The uploaded file becomes the dashboard’s latest data. Automatic sync takes over when a newer update arrives.</p>
+      <label htmlFor="upload-excel">Excel workbook</label><div className="manual-file-picker"><FileSpreadsheet size={28} aria-hidden="true" /><input ref={input} id="upload-excel" type="file" accept=".xlsx,.xlsm" disabled={busy} onChange={event => { setFile(event.target.files?.[0] || null); setMessage(''); }} /><small>Use the usual workbook and sheet structure · Maximum 25 MB</small></div>
+      <p className="manual-data-note">A manual upload applies immediately. Project source workbooks are restored on the next app restart.</p>
       <button type="submit" disabled={!file || busy}><UploadCloud size={18} />{busy ? 'Saving…' : 'Upload & update dashboard'}</button>
       <p className={`manual-upload-message ${success ? 'success' : ''}`} role="status" aria-live="polite">{success && <CheckCircle2 size={16} />}{message}</p>
-    </form><div className="manual-data-status"><h3>Current data sources</h3>{dashboards.map(([key, label]) => { const data = metadata[key]; return <div className="manual-source-row" key={key}><div><strong>{label}</strong><span>{data?.fileName || 'No update information available'}</span><small>{data?.updatedAt ? new Date(data.updatedAt).toLocaleString('en-GB', { timeZone: 'Asia/Riyadh' }) + ' · Riyadh' : '—'}</small></div><span className={`manual-source-badge ${data?.source === 'manual' ? 'manual' : ''}`}>{data?.source === 'manual' ? 'Manual' : data ? 'Automatic' : 'Unavailable'}</span></div>; })}</div></div>
+    </form><div className="manual-data-status"><h3>Current data sources</h3>{dashboards.map(([key, label]) => { const data = metadata[key]; return <div className="manual-source-row" key={key}><div><strong>{label}</strong><span>{data?.fileName || 'No update information available'}</span><small>{data?.updatedAt ? new Date(data.updatedAt).toLocaleString('en-GB', { timeZone: 'Asia/Riyadh' }) + ' · Riyadh' : '—'}</small></div><span className={`manual-source-badge ${data?.source === 'manual' || data?.source === 'project' ? 'manual' : ''}`}>{data?.source === 'project' ? 'Project source' : data?.source === 'manual' ? 'Manual' : data ? 'Local' : 'Unavailable'}</span></div>; })}</div></div>
   </section>;
 }

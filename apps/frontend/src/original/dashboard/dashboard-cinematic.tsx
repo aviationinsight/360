@@ -33,7 +33,7 @@ export function DashboardCinematic({ dashboard }: { dashboard: string }) {
 
   useEffect(() => {
     window.history.replaceState({}, "", `/dashboard?tab=${key}`);
-    const timer = window.setTimeout(() => setVisible(false), 4700);
+    const timer = window.setTimeout(() => setVisible(false), 200);
     return () => window.clearTimeout(timer);
   }, [key]);
 

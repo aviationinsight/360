@@ -18,3 +18,16 @@ test('streams shared strings and preserves referenced reporting headers and date
  zip.file('xl/worksheets/sheet1.xml','<worksheet><sheetData><row><c r="A1" t="s"><v>1</v></c><c r="B1" t="s"><v>2</v></c><c r="C1" t="s"><v>3</v></c></row><row><c r="A2" t="s"><v>4</v></c><c r="B2" t="s"><v>5</v></c><c r="C2" t="s"><v>6</v></c></row></sheetData></worksheet>');
  assert.deepEqual([...await workbookDates(await zip.generateAsync({type:'arraybuffer',compression:'DEFLATE'}),'amos')],['2026-10-24']);
 });
+
+test('validates compressed Marshaling uploads and rejects truncated worksheet data',async()=>{
+ const zip=await JSZip.loadAsync(await fixture('Summary',['New Date'],['2026-10-31']));
+ const bytes=await zip.generateAsync({type:'arraybuffer',compression:'DEFLATE'});
+ assert.deepEqual([...await workbookDates(bytes,'marshaling')],['2026-10-31']);
+ const view=new DataView(bytes);
+ for(let i=0;i<bytes.byteLength-46;i++)if(view.getUint32(i,true)===0x02014b50){
+  const length=view.getUint16(i+28,true);
+  const name=new TextDecoder().decode(new Uint8Array(bytes,i+46,length));
+  if(name==='xl/worksheets/sheet1.xml'){view.setUint32(i+24,view.getUint32(i+24,true)+1,true);break;}
+ }
+ await assert.rejects(()=>workbookDates(bytes,'marshaling'),/size mismatch/);
+});

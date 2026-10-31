@@ -45,6 +45,16 @@ test('dashboard dates, totals and batched redraws',async t=>{
    assert.equal(result.refreshedLatest,true);assert.equal(result.matching,true);assert.equal(result.preserved,true);assert.equal(result.renders,1);assert.equal(result.aggregates,true);assert.deepEqual(errors,[]);
    t.diagnostic(key+': 31 slider events coalesced into one render in '+result.changeMs.toFixed(1)+' ms');await page.close();
   });
+  await t.test('AOG finds its headers after an introductory report row',async()=>{
+   const page=await browser.newPage();await page.route('**/*',route=>route.abort());
+   await page.setContent(embedded('aog'),{waitUntil:'domcontentloaded'});
+   const result=await page.evaluate(()=>{
+    rows=[];
+    mergeNewData([['AOG delivery report'],['Picking List','Issued At','On Time Status','To Station'],[12345,46310,'on time','RUH']]);
+    return {count:rows.length,picklist:rows[0]?.picklist,ontime:rows[0]?.ontime,station:STATION_NAMES[rows[0]?.station]};
+   });
+   assert.deepEqual(result,{count:1,picklist:12345,ontime:1,station:'RUH'});await page.close();
+  });
   await t.test('saved category filters do not override the full date range',async()=>{
    const page=await browser.newPage();await page.route('http://dashboard.test/**',route=>route.request().url().includes('/metadata')?route.fulfill({status:503}):route.fulfill({contentType:'text/html',body:source}));await page.route(url=>url.protocol==='https:',route=>route.abort());
    await page.goto('http://dashboard.test/',{waitUntil:'domcontentloaded'});

@@ -5,27 +5,24 @@ import {bodyLimit} from 'hono/body-limit';
 import {eq,and,sql} from 'drizzle-orm';
 import {privateDashboard} from './private-dashboard.js';
 import {z} from 'zod';
-import {timingSafeEqual,randomUUID} from 'node:crypto';
-import {db,client,legacyDB} from './db.js';
+import {randomUUID} from 'node:crypto';
+import {db,client} from './db.js';
 import {auth} from './auth.js';
 import {config} from './config.js';
 import {objects} from './storage.js';
 import {user,account,session,permission} from '../../../database/schema/index.js';
 import {dashboardKeys,type Principal} from '../../../packages/shared/src/index.js';
 import {currentData,currentFile,dataAdmin} from './dashboard-data.js';
-import {reportEndpoint,reportGrant,snapshotFile} from './report-service.js';
 import {hash} from './password.js';
-const env={DB:legacyDB,REPORT_FILES:objects,...config};
-const app=new Hono<{Variables:{principal:Principal|null;grant:Awaited<ReturnType<typeof reportGrant>>}}>();
-const equal=(a:string,b:string)=>Buffer.byteLength(a)===Buffer.byteLength(b)&&timingSafeEqual(Buffer.from(a),Buffer.from(b));
-const service=(request:Request)=>Boolean(config.REPORT_SYNC_SECRET&&equal(request.headers.get('X-Report-Secret')||'',config.REPORT_SYNC_SECRET));
+const env={FILES:objects,...config};
+const app=new Hono<{Variables:{principal:Principal|null}}>();
 app.use('*',secureHeaders({xFrameOptions:'SAMEORIGIN',referrerPolicy:'same-origin',crossOriginResourcePolicy:'same-origin'}));
-app.use('*',cors({origin:config.PUBLIC_ORIGIN,credentials:true,allowMethods:['GET','POST','PATCH','DELETE','OPTIONS'],allowHeaders:['Content-Type','X-Report-Secret']}));
+app.use('*',cors({origin:config.PUBLIC_ORIGIN,credentials:true,allowMethods:['GET','POST','PATCH','DELETE','OPTIONS'],allowHeaders:['Content-Type']}));
 app.use('*',bodyLimit({maxSize:26*1024*1024,onError:c=>c.json({error:'Request too large'},413)}));
-app.use('*',async(c,next)=>{c.header('Cache-Control','no-store');if(['POST','PATCH','DELETE','PUT'].includes(c.req.method)&&!service(c.req.raw)&&c.req.header('origin')!==config.PUBLIC_ORIGIN)return c.json({error:'Invalid origin'},403);await next()});
+app.use('*',async(c,next)=>{c.header('Cache-Control','no-store');if(['POST','PATCH','DELETE','PUT'].includes(c.req.method)&&c.req.header('origin')!==config.PUBLIC_ORIGIN)return c.json({error:'Invalid origin'},403);await next()});
 app.use('*',async(c,next)=>{
  if(c.req.path.startsWith('/api/auth')||/login$/.test(c.req.path)){
-  // Do not trust a forwarded IP from the public internet. Shared login budget is persistent across restarts/replicas.
+  // Do not trust a forwarded IP from the public internet. The local login budget persists across app restarts.
   const key='authentication',window=Math.floor(Date.now()/60000);
   const result=await client.execute({sql:'INSERT INTO rate_limit(key,count,window) VALUES(?,1,?) ON CONFLICT(key) DO UPDATE SET count=CASE WHEN window=excluded.window THEN count+1 ELSE 1 END,window=excluded.window RETURNING count',args:[key,window]});
   if(Number(result.rows[0].count)>90){c.header('Retry-After','60');return c.json({error:'Too many attempts; retry shortly'},429)}
@@ -35,17 +32,16 @@ app.use('*',async(c,next)=>{
 app.get('/health/live',c=>c.json({status:'ok'}));
 app.get('/health/ready',async c=>{await client.execute('SELECT 1');return c.json({status:'ready'})});
 app.use('*',async(c,next)=>{
- const grant=await reportGrant(c.req.raw,env);c.set('grant',grant);
  const info=await auth.api.getSession({headers:c.req.raw.headers});let principal:Principal|null=null;
  if(info){const rows=await db.select().from(user).where(eq(user.id,info.user.id));const u=rows[0];if(u?.active){const access=await db.select().from(permission).where(eq(permission.userId,u.id));principal={id:u.id,name:u.name,role:u.role as Principal['role'],canExport:u.role==='admin'||u.canExport,permissions:Object.fromEntries(dashboardKeys.map(k=>[k,u.role==='admin'||(u.role==='general'&&k!=='permits')||access.some(p=>p.dashboard===k&&p.allowed)])) as Principal['permissions']}}}
  c.set('principal',principal);await next();
 });
 app.all('/api/auth/*',async c=>{
  // Original application is administrator-provisioned. No anonymous sign-up or role assignment.
- if(c.req.path.includes('/sign-up/'))return c.json({error:'Accounts are created by an administrator'},403);
+ if(c.req.path.includes('/sign-up/')||c.req.path.includes('password-reset')||c.req.path.includes('/reset-password'))return c.json({error:'Accounts are created by an administrator'},403);
  return auth.handler(c.req.raw);
 });
-app.get('/api/me',c=>{const p=c.get('principal'),grant=c.get('grant');if(p)return c.json(p);if(grant)return c.json({id:'report-render',name:'Report renderer',role:'report',canExport:true,permissions:{[grant.dashboard]:true},report:true});return c.json({error:'Unauthorized'},401)});
+app.get('/api/me',c=>{const p=c.get('principal');return p?c.json(p):c.json({error:'Unauthorized'},401)});
 for(const [route,kind] of [['/api/login','general'],['/api/employee-login','employee'],['/api/admin-login','admin']] as const){
  app.post(route,async c=>{
   const form=await c.req.formData();const password=String(form.get('password')||'');let username=String(form.get('username')||'').trim().toLowerCase();
@@ -68,16 +64,14 @@ app.post('/api/admin/users',async c=>{const b=permissionBody.extend({username:z.
 app.patch('/api/admin/users/:id',async c=>{const b=permissionBody.parse(await c.req.json());if(b.password&&b.password.length<8)return c.json({error:'Password must contain at least 8 characters'},400);const raw=c.req.param('id');const u=(await db.select().from(user).where(/^\d+$/.test(raw)?eq(user.legacyId,Number(raw)):eq(user.id,raw)))[0];if(!u)return c.json({error:'Not found'},404);if(u.id===c.get('principal')!.id&&(!b.isAdmin||!b.active))return c.json({error:'Cannot remove your own administrator access'},409);await db.update(user).set({name:b.name,role:b.isAdmin?'admin':'employee',active:b.active,canExport:b.canExport,updatedAt:new Date(),...(b.email?{email:b.email,emailVerified:false}:{})}).where(eq(user.id,u.id));await applyPermissions(u.id,b);if(b.password)await db.update(account).set({password:await hash(b.password),updatedAt:new Date()}).where(and(eq(account.userId,u.id),eq(account.providerId,'credential')));await db.delete(session).where(eq(session.userId,u.id));return c.json({ok:true})});
 app.delete('/api/admin/users/:id',async c=>{const raw=c.req.param('id');const u=(await db.select().from(user).where(/^\d+$/.test(raw)?eq(user.legacyId,Number(raw)):eq(user.id,raw)))[0];if(!u)return c.json({error:'Not found'},404);if(u.id===c.get('principal')!.id)return c.json({error:'Cannot delete your own account'},409);await db.delete(user).where(eq(user.id,u.id));return c.json({ok:true})});
 app.on(['GET','POST'],'/api/admin/dashboard-data',c=>dataAdmin(c.req.raw,env));
-app.all('/api/reports/*',async c=>await reportEndpoint(c.req.raw,env,c.get('principal')?.role==='admin')||c.json({error:'Not found'},404));
 app.get('/api/dashboard-sync/:dashboard/:resource',async c=>{
  const d=c.req.param('dashboard'),resource=c.req.param('resource');if(!['amos','aog','fak','marshaling'].includes(d)||!['metadata','file'].includes(resource))return c.json({error:'Not found'},404);
- const grant=c.get('grant');if(grant?.dashboard===d){if(resource==='metadata')return c.json({updatedAt:grant.job.updated_at,dashboard:d,reportSnapshot:true});const f=await snapshotFile(env,grant.job,d);return f?new Response(f.body,{headers:{'Content-Type':'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet','Cache-Control':'no-store'}}):c.json({error:'Snapshot missing'},404)}
  const p=c.get('principal');if(!p)return c.json({error:'Unauthorized'},401);if(!p.permissions[d as keyof typeof p.permissions])return c.json({error:'Forbidden'},403);
  if(resource==='metadata')return c.json({success:true,dashboard:d,metadata:(await currentData(env,d)).metadata});const response=await currentFile(env,d);if(!response.ok)return c.json({error:'Excel temporarily unavailable'},502);return new Response(response.body,{headers:{'Content-Type':'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet','Cache-Control':'no-store'}});
 });
-app.post('/api/dashboard-sync/client-event',async c=>{if(!c.get('principal')&&!c.get('grant'))return c.json({error:'Unauthorized'},401);z.object({dashboard:z.string().max(12),status:z.string().max(24)}).passthrough().parse(await c.req.json());return c.body(null,204)});
+app.post('/api/dashboard-sync/client-event',async c=>{if(!c.get('principal'))return c.json({error:'Unauthorized'},401);z.object({dashboard:z.string().max(12),status:z.string().max(24)}).passthrough().parse(await c.req.json());return c.body(null,204)});
 app.get('/secure-dashboard',async c=>{
- const d=c.req.query('tab')||'amos',p=c.get('principal'),grant=c.get('grant');if(!dashboardKeys.includes(d as never))return c.json({error:'Not found'},404);if(!p&&grant?.dashboard!==d)return c.redirect('/login',303);if(p&&!p.permissions[d as keyof typeof p.permissions])return c.json({error:'Forbidden'},403);if(c.req.query('export')==='1'&&!p?.canExport&&grant?.dashboard!==d)return c.json({error:'Export forbidden'},403);
+ const d=c.req.query('tab')||'amos',p=c.get('principal');if(!dashboardKeys.includes(d as never))return c.json({error:'Not found'},404);if(!p)return c.redirect('/login',303);if(p&&!p.permissions[d as keyof typeof p.permissions])return c.json({error:'Forbidden'},403);if(c.req.query('export')==='1'&&!p?.canExport)return c.json({error:'Export forbidden'},403);
  let html=await privateDashboard(d);
  if(d!=='permits'){
   // Do not send other departments' embedded baseline records to restricted accounts.

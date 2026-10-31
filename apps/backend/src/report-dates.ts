@@ -1,14 +1,15 @@
-import JSZip from 'jszip';
+import { Readable } from 'node:stream';
+import { createInflateRaw } from 'node:zlib';
+type XmlFile = { chunks: () => AsyncIterable<Uint8Array>; text: () => Promise<string> };
 const decode = (s: string) => s.replace(/&#x([0-9a-f]+);|&#(\d+);|&(amp|lt|gt|quot|apos);/gi, (_, h, d, n) => h ? String.fromCodePoint(parseInt(h,16)) : d ? String.fromCodePoint(Number(d)) : ({amp:'&',lt:'<',gt:'>',quot:'"',apos:"'"} as Record<string,string>)[n]);
 const attr = (s: string, name: string) => decode(s.match(new RegExp(`(?:^|\\s)${name}="([^"]*)"`))?.[1] || '');
 const texts = (s: string) => Array.from(s.matchAll(/<t(?:\s[^>]*)?>([\s\S]*?)<\/t>/g), m => decode(m[1])).join('');
 const normalized = (s: unknown) => String(s ?? '').trim().toLowerCase().replace(/[^a-z0-9]/g,'');
 const MiB=1024*1024;
 // Read large worksheet XML incrementally instead of keeping its expanded text in memory.
-async function xmlElements(file:JSZip.JSZipObject,tag:string,consume:(xml:string)=>void){
- const source=file as JSZip.JSZipObject & {internalStream(type:'uint8array'):JSZip.JSZipStreamHelper<Uint8Array>};
- const stream=source.internalStream('uint8array'),decoder=new TextDecoder();
- let pending='',expanded=0,done=false;
+async function xmlElements(file:XmlFile,tag:string,consume:(xml:string)=>void){
+ const decoder=new TextDecoder();
+ let pending='',expanded=0;
  const opening=new RegExp(`<${tag}(?:\\s[^>]*?)?>`),closing=`</${tag}>`;
  function parse(chunk:string){
   pending+=chunk;
@@ -22,13 +23,11 @@ async function xmlElements(file:JSZip.JSZipObject,tag:string,consume:(xml:string
    consume(pending.slice(0,end+closing.length));pending=pending.slice(end+closing.length);
   }
  }
- await new Promise<void>((resolve,reject)=>{
-  const fail=(error:unknown)=>{if(done)return;done=true;stream.pause();reject(error);};
-  stream.on('data',chunk=>{if(done)return;try{expanded+=chunk.byteLength;if(expanded>512*MiB)throw new Error('Workbook expanded size exceeds limit');parse(decoder.decode(chunk,{stream:true}));}catch(error){fail(error);}});
-  stream.on('error',fail);
-  stream.on('end',()=>{if(done)return;try{parse(decoder.decode());if(opening.test(pending))throw new Error('Incomplete workbook XML');done=true;resolve();}catch(error){fail(error);}});
-  stream.resume();
- });
+ for await(const chunk of file.chunks()){
+  expanded+=chunk.byteLength;if(expanded>512*MiB)throw new Error('Workbook expanded size exceeds limit');
+  parse(decoder.decode(chunk,{stream:true}));
+ }
+ parse(decoder.decode());if(opening.test(pending))throw new Error('Incomplete workbook XML');
 }
 export function excelDate(value: unknown, date1904 = false): string | null {
   if (typeof value === 'number') {
@@ -57,6 +56,7 @@ export async function workbookDates(buffer: ArrayBuffer, dashboard: string): Pro
   const count=view.getUint16(end+10,true),offset=view.getUint32(end+16,true);
   if(count===65535||offset===0xffffffff||count>10000)throw new Error('Unsupported workbook archive');
   let position=offset,total=0;
+  const files=new Map<string,XmlFile>();
   for(let i=0;i<count;i++){
     if(position+46>buffer.byteLength||view.getUint32(position,true)!==0x02014b50)throw new Error('Invalid archive directory');
     const size=view.getUint32(position+24,true);total+=size;
@@ -65,13 +65,27 @@ export async function workbookDates(buffer: ArrayBuffer, dashboard: string): Pro
     const streamed=/^xl\/(?:worksheets\/[^/]+\.xml|sharedStrings\.xml)$/.test(name);
     const limit=streamed?512*MiB:/^xl\/(?:workbook\.xml|_rels\/workbook\.xml\.rels)$/.test(name)?2*MiB:50*MiB;
     if((view.getUint16(position+8,true)&1)||size>limit||total>1024*MiB)throw new Error('Workbook expanded size exceeds limit');
+    const method=view.getUint16(position+10,true),compressedSize=view.getUint32(position+20,true),local=view.getUint32(position+42,true);
+    if(local+30>buffer.byteLength||view.getUint32(local,true)!==0x04034b50)throw new Error('Invalid archive entry');
+    const start=local+30+view.getUint16(local+26,true)+view.getUint16(local+28,true);
+    if(start+compressedSize>offset||![0,8].includes(method))throw new Error('Unsupported archive entry');
+    const chunks=async function*(){
+      const bytes=new Uint8Array(buffer,start,compressedSize);
+      // Native streaming inflation avoids JSZip's JavaScript inflater CPU cost
+      // without materializing a potentially hundreds-of-megabytes worksheet.
+      const input=Readable.from((function*(){for(let i=0;i<bytes.length;i+=65536)yield bytes.subarray(i,i+65536);})());
+      const output=method===8?input.pipe(createInflateRaw()):input;
+      let expanded=0;
+      try{for await(const chunk of output){expanded+=chunk.length;if(expanded>size||expanded>limit)throw new Error('Workbook expanded size exceeds limit');yield chunk as Uint8Array;}
+        if(expanded!==size)throw new Error('Workbook expanded size mismatch');
+      }finally{output.destroy();input.destroy();}
+    };
+    files.set(name,{chunks,text:async()=>{const decoder=new TextDecoder();let text='';for await(const chunk of chunks())text+=decoder.decode(chunk,{stream:true});return text+decoder.decode();}});
     position+=46+view.getUint16(position+28,true)+view.getUint16(position+30,true)+view.getUint16(position+32,true);
   }
-  // CRC checking here would eagerly inflate every sheet, including unused sheets.
-  const zip=await JSZip.loadAsync(buffer);
-  const read=async (path:string) => { const f=zip.file(path); if(!f)throw new Error(`Workbook missing ${path}`);return f.async('string'); };
+  const read=async (path:string) => { const f=files.get(path); if(!f)throw new Error(`Workbook missing ${path}`);return f.text(); };
   const workbook=await read('xl/workbook.xml'), rels=await read('xl/_rels/workbook.xml.rels');
-  const sharedFile=zip.file('xl/sharedStrings.xml');
+  const sharedFile=files.get('xl/sharedStrings.xml');
   const shared=new Map<number,string>();let stringIndex=0;
   const headers=new Set(['yearid','monthid','dayid','date','issuedat','newdate']);
   if(sharedFile)await xmlElements(sharedFile,'si',xml=>{
@@ -90,7 +104,7 @@ export async function workbookDates(buffer: ArrayBuffer, dashboard: string): Pro
   if(!relation)throw new Error('Worksheet relationship not found');
   const target=attr(relation,'Target');
   const path=target.startsWith('/') ? target.slice(1) : 'xl/'+target.replace(/^\.\//,'');
-  const worksheet=zip.file(path);if(!worksheet)throw new Error(`Workbook missing ${path}`);
+  const worksheet=files.get(path);if(!worksheet)throw new Error(`Workbook missing ${path}`);
   const result=new Set<string>();
   const date1904=/date1904="(?:1|true)"/.test(workbook);
   let columns:Record<string,string>|null=null;

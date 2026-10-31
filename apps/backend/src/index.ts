@@ -3,5 +3,5 @@ import {mkdir} from 'node:fs/promises';
 import app from './app.js';
 import {config} from './config.js';
 await mkdir(config.DATA_DIR,{recursive:true});
-serve({fetch:app.fetch,port:config.PORT});
+serve({fetch:app.fetch,hostname:'127.0.0.1',port:config.PORT});
 console.log(`Aviation API listening on ${config.PORT}`);

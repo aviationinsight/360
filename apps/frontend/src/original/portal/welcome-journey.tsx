@@ -8,7 +8,7 @@ export default function WelcomeJourney({ name, personalized }: { name: string; p
 
   useEffect(() => {
     window.history.replaceState({}, "", "/portal");
-    const timer = window.setTimeout(() => setVisible(false), 5200);
+    const timer = window.setTimeout(() => setVisible(false), 200);
     return () => window.clearTimeout(timer);
   }, []);
 
