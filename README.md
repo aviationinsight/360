@@ -9,8 +9,8 @@ Accounts, uploads and settings remain in `AviationInsight-data`.
 
 ## Excel sources
 
-The authoritative workbooks are in `data/dashboard-sources`: `amos.xlsx`,
-`aog.xlsm`, `fak.xlsx`, and `marshaling.xlsx`. Save changes, close the app fully,
+The authoritative workbooks are in `data/dashboard-sources`: `AMOS.xlsx`,
+`AOG.xlsm`, `FAK.xlsx`, and `MARSHALING.xlsx`. Save changes, close the app fully,
 then reopen it to import updates automatically. Unchanged files are skipped.
 
 ## Build and verify

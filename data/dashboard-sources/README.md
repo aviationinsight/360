@@ -2,19 +2,19 @@
 
 These files are the source of truth for the desktop edition:
 
-| Dashboard | Workbook |
-| --- | --- |
-| AMOS | `amos.xlsx` |
-| AOG Delivery | `aog.xlsm` |
-| FAK | `fak.xlsx` |
-| Marshaling | `marshaling.xlsx` |
+| Dashboard | Workbook | Data sheet |
+| --- | --- | --- |
+| AMOS | `AMOS.xlsx` | `AMOS Data` |
+| AOG Delivery | `AOG.xlsm` | `AOG Data Automated` |
+| FAK | `FAK.xlsx` | `FAK Data Automated` |
+| Marshaling | `MARSHALING.xlsx` | `Summary Marshaling Data` |
 
 Edit or replace these files, keep their names, save and close Excel, then close
 and reopen Aviation Insight. Startup validates all changed files before loading
 them into local storage. Unchanged files are checked but not uploaded again.
 Manual uploads are temporary overrides until the next cold start.
 
-The workbooks were moved from OneDrive without editing their contents. Binary
+The workbooks were moved from OneDrive; their data sheets use the names above. Binary
 workbooks are excluded from Git. Back up this folder with your project.
 
 When run from `dist/portable`, the app reads this project folder directly; no

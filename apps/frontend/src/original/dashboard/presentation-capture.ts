@@ -103,6 +103,7 @@ export function arrangePresentation(doc: Document, key: string) {
   // Fit every AMOS store row into the approved table area, including longer lists.
   if (key === 'amos') {
     const n = doc.querySelectorAll('#tbl-store tr').length;
+    style.textContent += '.store-story thead th{color:#59363f!important;background:#f6f1f3!important}';
     if (n > 18) {
       const height = Math.max(15, Math.floor(555/n));
       style.textContent += `.store-story td{height:${height}px!important;line-height:${Math.max(12,height-4)}px!important;font-size:${Math.min(17,height-3)}px!important;padding:1px 7px!important}.store-story .pill{font-size:${Math.min(15,height-4)}px!important;line-height:${Math.max(12,height-4)}px!important;padding:0 4px!important}`;

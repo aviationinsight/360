@@ -3,7 +3,7 @@ import {join} from 'node:path';
 import {createHash} from 'node:crypto';
 import {workbookDates} from '../../apps/backend/src/report-dates.js';
 
-export const sourceWorkbooks=[['amos','amos.xlsx'],['aog','aog.xlsm'],['fak','fak.xlsx'],['marshaling','marshaling.xlsx']] as const;
+export const sourceWorkbooks=[['amos','AMOS.xlsx'],['aog','AOG.xlsm'],['fak','FAK.xlsx'],['marshaling','MARSHALING.xlsx']] as const;
 type Store={get(key:string):Promise<{json<T>():Promise<T>}|null>;head(key:string):Promise<unknown>;put(key:string,value:ArrayBuffer|Uint8Array|string):Promise<unknown>};
 type SourceMetadata={source:string;sourceHash:string;key:string;dateCount:number};
 

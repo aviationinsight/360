@@ -7,7 +7,7 @@ import JSZip from 'jszip';
 import {importSourceWorkbooks,sourceWorkbooks} from '../scripts/portable/source-workbooks.js';
 
 async function workbook(dashboard:string,date='2026-10-29'){
- const zip=new JSZip(),sheet=dashboard==='amos'?'AMOS File':dashboard==='aog'?'Automated':dashboard==='fak'?'FAK Automated New':'Summary';
+ const zip=new JSZip(),sheet=dashboard==='amos'?'AMOS Data':dashboard==='aog'?'AOG Data Automated':dashboard==='fak'?'FAK Data Automated':'Summary Marshaling Data';
  const headers=dashboard==='amos'?['Year ID','Month ID','Day ID']:[dashboard==='aog'?'Issued At':dashboard==='fak'?'DATE':'New Date'];
  const values=dashboard==='amos'?date.split('-'):[date];
  const row=(cells:string[],n:number)=>`<row>${cells.map((v,i)=>`<c r="${String.fromCharCode(65+i)}${n}" t="inlineStr"><is><t>${v}</t></is></c>`).join('')}</row>`;
@@ -25,15 +25,15 @@ test('cold start imports sources, skips identical files, restores overrides and 
   assert.equal((await importSourceWorkbooks(directory,store)).filter(s=>s.changed).length,4);
   writes=0;
   assert.ok((await importSourceWorkbooks(directory,store)).every(s=>!s.changed));assert.equal(writes,0);
-  await writeFile(join(directory,'aog.xlsm'),await workbook('aog','2026-10-30'));
+  await writeFile(join(directory,'AOG.xlsm'),await workbook('aog','2026-10-30'));
   assert.deepEqual((await importSourceWorkbooks(directory,store)).filter(s=>s.changed).map(s=>s.dashboard),['aog']);
   saved.set('dashboard-data/amos/latest.json',Buffer.from(JSON.stringify({source:'manual',key:'override'})));
   assert.deepEqual((await importSourceWorkbooks(directory,store)).filter(s=>s.changed).map(s=>s.dashboard),['amos']);
   assert.equal(JSON.parse(saved.get('dashboard-data/amos/latest.json')!.toString()).source,'project');
-  await writeFile(join(directory,'amos.xlsx'),await workbook('amos','2026-10-31'));
-  await writeFile(join(directory,'fak.xlsx'),'invalid');writes=0;
+  await writeFile(join(directory,'AMOS.xlsx'),await workbook('amos','2026-10-31'));
+  await writeFile(join(directory,'FAK.xlsx'),'invalid');writes=0;
   const previousPointer=saved.get('dashboard-data/amos/latest.json')!.toString();
-  await assert.rejects(()=>importSourceWorkbooks(directory,store),/fak.xlsx/);assert.equal(writes,0);
+  await assert.rejects(()=>importSourceWorkbooks(directory,store),/FAK.xlsx/);assert.equal(writes,0);
   assert.equal(saved.get('dashboard-data/amos/latest.json')!.toString(),previousPointer);
  }finally{await rm(directory,{recursive:true,force:true});}
 });

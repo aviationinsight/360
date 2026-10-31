@@ -24,8 +24,8 @@ opening the desktop edition.
 ## Excel source files and cold start
 
 The desktop app loads its workbooks automatically before showing the login screen.
-The canonical project folder is `data/dashboard-sources`, containing `amos.xlsx`,
-`aog.xlsm`, `fak.xlsx`, and `marshaling.xlsx`. Save and close your Excel workbook,
+The canonical project folder is `data/dashboard-sources`, containing `AMOS.xlsx`,
+`AOG.xlsm`, `FAK.xlsx`, and `MARSHALING.xlsx`. Save and close your Excel workbook,
 then close and reopen the app to reload changes. Opening a second window while
 the app is already running is not a cold start.
 

@@ -74,7 +74,7 @@ test('dashboard dates, totals and batched redraws',async t=>{
    const fixture=await browser.newPage();await fixture.route('**/*',route=>route.abort());await fixture.setContent(embedded('amos'),{waitUntil:'domcontentloaded'});
    const workbooks=await fixture.evaluate(()=>[16,17].map(day=>{
     const book=XLSX.utils.book_new();const grid=[['YearID','MonthID','Month Name','Day ID','Shift Time','Store','Prio','Flag','Shift Name','Picking List','Time Taken in min'],[2026,10,'Oct',day,'08:00','900','AOG','on time','1 - Day Shift',1001,12]];
-    grid.push([2026,10,'Oct',day-1,'09:00','900','Normal','on time','1 - Day Shift',1002,10]);XLSX.utils.book_append_sheet(book,XLSX.utils.aoa_to_sheet([['Cover sheet']]),'Overview');XLSX.utils.book_append_sheet(book,XLSX.utils.aoa_to_sheet(grid),'AMOS File');return Array.from(new Uint8Array(XLSX.write(book,{type:'array',bookType:'xlsx'})));
+    grid.push([2026,10,'Oct',day-1,'09:00','900','Normal','on time','1 - Day Shift',1002,10]);XLSX.utils.book_append_sheet(book,XLSX.utils.aoa_to_sheet([['Cover sheet']]),'Overview');XLSX.utils.book_append_sheet(book,XLSX.utils.aoa_to_sheet(grid),'AMOS Data');return Array.from(new Uint8Array(XLSX.write(book,{type:'array',bookType:'xlsx'})));
    }));await fixture.close();
    let version=0,fileRequests=0,releaseDownload;const initialDownload=new Promise(resolve=>releaseDownload=resolve);const page=await browser.newPage();
    await page.route(url=>url.protocol==='https:',route=>route.abort());

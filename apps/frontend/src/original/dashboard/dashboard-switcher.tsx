@@ -19,7 +19,7 @@ export function DashboardSwitcher({ current, allowed }: { current: string; allow
           aria-label="Choose dashboard"
           value={current}
           onChange={(event) => {
-            window.location.href = `/dashboard?tab=${event.target.value}&intro=1`;
+            window.location.href = `/dashboard?tab=${event.target.value}${event.target.value === "permits" ? "&intro=1" : ""}`;
           }}
         >
           {dashboards.map((dashboard) => (

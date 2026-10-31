@@ -14,7 +14,7 @@ export default function DashboardPage({ searchParams }: { searchParams: { tab?: 
   const dashboardAccess = { ...allowed, permits: role === "admin" || allowed.permits === true };
   return (
     <main className="dashboard-shell">
-      {intro === "1" && <DashboardCinematic dashboard={tab} />}
+      {tab === "permits" && intro === "1" && <DashboardCinematic dashboard={tab} />}
       <header className="dashboard-toolbar">
         <a href="/portal" className="back-link"><ArrowLeft size={18} /> Command Center</a>
         <DashboardSwitcher current={tab} allowed={dashboardAccess} />

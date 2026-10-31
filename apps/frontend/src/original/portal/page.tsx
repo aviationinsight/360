@@ -1,6 +1,5 @@
 import { Activity, ArrowUpRight, Boxes, Gauge, MapPinned, Plane, ShieldCheck } from "lucide-react";
 import { useSessionHeaders } from "../session";
-import WelcomeJourney from "./welcome-journey";
 
 const departments = [
   { key: "amos", number: "01", title: "AMOS Picking", subtitle: "Urgent aircraft recovery & normal logistics", icon: Gauge, tone: "red", tag: "PICKING PERFORMANCE" },
@@ -13,7 +12,6 @@ const permitsDepartment = { key: "permits", number: "05", title: "Security Permi
 
 export const dynamic = "force-dynamic";
 export default function PortalPage({ searchParams }: { searchParams: { welcome?: string } }) {
-  const { welcome } = searchParams;
   const requestHeaders = useSessionHeaders();
   const role = requestHeaders.get("x-sal-role") || "general";
   const name = requestHeaders.get("x-sal-name") || "Guest";
@@ -21,7 +19,6 @@ export default function PortalPage({ searchParams }: { searchParams: { welcome?:
   const visibleDepartments = role === "admin" || allowed.permits ? [...departments, permitsDepartment] : departments;
   return (
     <main className="portal-shell">
-      {welcome === "1" && <WelcomeJourney name={name} personalized={role === "employee"} />}
       <header className="portal-header">
         <div className="brand-lockup compact"><span className="aviation-wordmark">AVIATION <em>INSIGHT</em></span><span>Operations Command Center</span></div>
         <div className="portal-actions">{role === "admin" && <a className="admin-control-link" href="/admin">Admin Control</a>}<span className="secure-pill"><ShieldCheck size={16} /> {role === "employee" ? name : "Secure session"}</span><form action="/api/logout" method="post"><button className="logout-button">Sign out</button></form></div>
@@ -34,7 +31,7 @@ export default function PortalPage({ searchParams }: { searchParams: { welcome?:
       <section className="section-heading"><div><span className="eyebrow">OPERATIONAL AREAS</span><h2>Choose your dashboard</h2></div><p>Updated dashboards with interactive filters and Excel data controls.</p></section>
       <section className={`department-grid ${visibleDepartments.length === 5 ? "admin-five" : ""}`}>
         {visibleDepartments.map(({ key, number, title, subtitle, icon: Icon, tone, tag }) => (
-          <a className={`department-card ${tone} ${allowed[key] ? "" : "locked"}`} href={allowed[key] ? `/dashboard?tab=${key}&intro=1` : "#"} aria-disabled={!allowed[key]} key={key}>
+          <a className={`department-card ${tone} ${allowed[key] ? "" : "locked"}`} href={allowed[key] ? `/dashboard?tab=${key}${key === "permits" ? "&intro=1" : ""}` : "#"} aria-disabled={!allowed[key]} key={key}>
             <div className="card-top"><span className="department-number">{number}</span><span className="open-icon"><ArrowUpRight size={20} /></span></div>
             <div className="department-icon"><Icon size={28} /></div><span className="department-tag">{tag}</span><h3>{title}</h3><p>{subtitle}</p>
             <div className="card-footer"><span>{allowed[key] ? "Open dashboard" : "Access restricted"}</span><span className={allowed[key] ? "pulse-dot" : "card-lock"}>{allowed[key] ? "" : "🔒"}</span></div>

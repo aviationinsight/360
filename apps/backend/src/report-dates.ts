@@ -98,7 +98,7 @@ export async function workbookDates(buffer: ArrayBuffer, dashboard: string): Pro
     stringIndex++;
   });
   const sheets=Array.from(workbook.matchAll(/<sheet\s([^>]+)\/?\s*>/g),m=>({name:attr(m[1],'name'),id:attr(m[1],'r:id')}));
-  const sheet = dashboard==='amos' ? sheets.find(s=>normalized(s.name)==='amosfile') || sheets[0] : dashboard==='fak' ? sheets.find(s=>normalized(s.name)==='fakautomatednew') : dashboard==='aog' ? sheets.find(s=>normalized(s.name)==='automated') : sheets.find(s=>['summry','summary'].includes(normalized(s.name)));
+  const sheet = dashboard==='amos' ? sheets.find(s=>['amosdata','amosfile'].includes(normalized(s.name))) || sheets[0] : dashboard==='fak' ? sheets.find(s=>['fakdataautomated','fakautomatednew'].includes(normalized(s.name))) : dashboard==='aog' ? sheets.find(s=>['aogdataautomated','automated'].includes(normalized(s.name))) : sheets.find(s=>['summarymarshalingdata','summry','summary'].includes(normalized(s.name)));
   if(!sheet)throw new Error(`Required ${dashboard} data sheet was not found`);
   const relation=Array.from(rels.matchAll(/<Relationship\s([^>]+)\/?\s*>/g),m=>m[1]).find(s=>attr(s,'Id')===sheet.id);
   if(!relation)throw new Error('Worksheet relationship not found');
