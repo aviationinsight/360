@@ -21,12 +21,14 @@ try{
  const settings=await desktop.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].webContents.getLastWebPreferences());
  assert.equal(settings.nodeIntegration,false);assert.equal(settings.contextIsolation,true);assert.equal(settings.sandbox,true);
  assert.match(await page.title(),/^Aviation Insight/);
+ assert.equal(await page.getByRole('button',{name:'Install app',exact:true}).count(),0);
  const login=await readFile(join(data,'First-run-login.txt'),'utf8');
  const password=login.match(/Password: (.+)/)[1].trim();
  await page.getByLabel('Admin username').fill('admin');
  await page.getByLabel('Admin password').fill(password);
  await page.getByRole('button',{name:'Enter Platform'}).click();
  await page.waitForURL(/\/portal/);
+ assert.equal(await page.getByRole('button',{name:'Install app',exact:true}).count(),0);
  await page.goto(origin+'/admin');
  await page.getByRole('heading',{name:'Manual Excel update'}).waitFor();
  await page.screenshot({path:join(run,'desktop.png')});
@@ -34,6 +36,7 @@ try{
  assert.equal(desktop.windows().length,1,'Unexpected popup window');
  await page.goto(origin+'/dashboard?tab=marshaling&intro=1');
  await page.locator('iframe.dashboard-frame').waitFor();
+ assert.equal(await page.getByRole('link',{name:'Open full screen'}).count(),0);
  // A new installation shows its embedded baseline before any workbook upload.
  // The runtime smoke test separately checks the data-ready signal after upload.
  await page.waitForFunction(()=>document.querySelector('iframe.dashboard-frame')?.contentDocument?.querySelector('iframe.active')?.contentDocument?.querySelector('.main'),{},{timeout:30000});

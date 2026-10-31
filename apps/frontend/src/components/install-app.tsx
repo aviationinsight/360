@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Download, Share, Smartphone, X } from 'lucide-react';
+import { isDesktopApp } from '../lib/desktop';
 type InstallEvent = Event & { prompt(): Promise<void>; userChoice: Promise<{ outcome: string }> };
 export function InstallApp() {
   const { pathname } = useLocation();
@@ -12,6 +13,7 @@ export function InstallApp() {
   const [busy, setBusy] = useState(false);
   const dialog = useRef<HTMLDialogElement>(null);
   useEffect(() => {
+    if (isDesktopApp()) return;
     const standalone = window.matchMedia('(display-mode: standalone)');
     const isStandalone = () => setInstalled(standalone.matches || Boolean((navigator as Navigator & { standalone?: boolean }).standalone));
     isStandalone();
@@ -32,7 +34,7 @@ export function InstallApp() {
     catch { dialog.current?.showModal(); }
     finally { setPrompt(null); setBusy(false); }
   }
-  if (installed || !['/', '/login', '/portal'].includes(pathname)) return null;
+  if (isDesktopApp() || installed || !['/', '/login', '/portal'].includes(pathname)) return null;
   return <>
     <button className="install-app-button" onClick={install} disabled={busy}><Download size={17} />{busy ? 'Opening…' : 'Install app'}</button>
     <dialog ref={dialog} className="install-app-dialog" aria-labelledby="install-app-title" onClick={event => { if (event.target === event.currentTarget) dialog.current?.close(); }}>

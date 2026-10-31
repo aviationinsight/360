@@ -19,7 +19,7 @@ for(const name of ['AMOS.xlsx','AOG.xlsm','FAK.xlsx','MARSHALING.xlsx']){
  await stat(join(root,'data','dashboard-sources',name));
 }
 console.log('Building the local interface...');
-execFileSync(process.execPath,[join(root,'node_modules/vite/bin/vite.js'),'build'],{cwd:join(root,'apps/frontend'),stdio:'inherit'});
+execFileSync(process.execPath,[join(root,'node_modules/vite/bin/vite.js'),'build'],{cwd:join(root,'apps/frontend'),stdio:'inherit',env:{...process.env,VITE_DESKTOP_APP:desktop?'1':'0'}});
 await build({entryPoints:['scripts/portable/server.ts'],outfile:join(stage,'server.mjs'),bundle:true,packages:'external',platform:'node',format:'esm',target:'node24'});
 await cp('scripts/portable/bootstrap.mjs',join(stage,'bootstrap.mjs'));
 await cp('apps/frontend/dist',join(stage,'public'),{recursive:true});
