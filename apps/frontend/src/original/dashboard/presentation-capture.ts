@@ -111,6 +111,8 @@ export function arrangePresentation(doc: Document, key: string) {
   // Fit every AMOS store row into the approved table area, including longer lists.
   if (key === 'amos') {
     const n = doc.querySelectorAll('#tbl-store tr').length;
+    // Keep even 100.00% comfortably inside both 174px performance rings.
+    style.textContent += '.priority-story .score-center{top:8px}.priority-story .score-center b{font-size:28px!important;line-height:1.2!important;white-space:nowrap}';
     style.textContent += '.store-story thead th{color:#59363f!important;background:#f6f1f3!important}';
     if (n > 18) {
       const height = Math.max(15, Math.floor(555/n));
