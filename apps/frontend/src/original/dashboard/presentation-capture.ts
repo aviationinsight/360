@@ -96,6 +96,14 @@ export function arrangePresentation(doc: Document, key: string) {
     .score-orbit,.priority-story.target-achieved .score-orbit,.mix-ring,.shift-dial{box-shadow:none!important;filter:none!important}
     .reach-main{box-shadow:none!important}
   `;
+  if (key === 'aog') {
+    // Leave room for the total below all five station runways on the 16:9 slide.
+    style.textContent += `.row-bar .runway-row{margin:10px 0}
+      .row-bar .runway-track{height:28px}
+      .row-bar .runway-plane{width:29px;height:29px;font-size:16px;right:-14px}
+      .row-bar .bar-total{margin-top:10px;padding-top:8px}
+      .row-bar .bar-total .n{font-size:30px}`;
+  }
   if (key === 'aog' && doc.querySelectorAll('.station-cards > .station-card').length >= 5) {
     style.textContent += '.station-cards{grid-template-columns:repeat(3,minmax(0,1fr))!important}';
   }
