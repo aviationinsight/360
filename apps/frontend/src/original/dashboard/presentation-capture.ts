@@ -1,5 +1,6 @@
 import { presentationStyles, truckIcon } from './presentation-layouts';
 import { airportPoints, worldLand } from './presentation-map';
+import { psVolumePresentation } from './ps-volume-presentation';
 
 const pause = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 let fontsPromise: Promise<string> | undefined;
@@ -29,6 +30,10 @@ function buildMap(doc: Document) {
 }
 
 export function arrangePresentation(doc: Document, key: string) {
+  if (key === 'psvolume') {
+    const style = doc.createElement('style'); style.textContent = psVolumePresentation; doc.head.append(style);
+    return;
+  }
   if (key === 'amos') {
     const tbody = doc.querySelector('#tbl-store');
     if (tbody && !tbody.querySelector('.total-row')) {
@@ -136,7 +141,8 @@ export async function renderPresentation(source: Document, key: string): Promise
     const fontStyle = doc.createElement('style'); fontStyle.textContent = fontCSS; doc.head.append(fontStyle);
     arrangePresentation(doc, key);
     // Force layout and load every exported face before freezing the snapshot.
-    doc.querySelector('.app')!.getBoundingClientRect();
+    const rootSelector = key === 'psvolume' ? '.ps-dashboard' : '.app';
+    doc.querySelector(rootSelector)!.getBoundingClientRect();
     await Promise.all(['Inter', 'Space Grotesk'].flatMap(family => [400, 500, 600, 700, 800].map(weight => doc.fonts.load(`${weight} 16px "${family}"`))));
     await doc.fonts.ready;
     await pause(150);
@@ -153,7 +159,7 @@ export async function renderPresentation(source: Document, key: string): Promise
     content.setAttribute('xmlns', 'http://www.w3.org/1999/xhtml');
     content.style.cssText = 'width:1920px;height:1080px;overflow:hidden;font-family:Inter,sans-serif;color:#2b1d20;' ;
     doc.querySelectorAll('style').forEach(style => content.append(style.cloneNode(true)));
-    const app = doc.querySelector('.app')!;
+    const app = doc.querySelector(rootSelector)!;
     const frozen = app.cloneNode(true) as HTMLElement;
     const originals = [app, ...Array.from(app.querySelectorAll('*'))];
     const copies = [frozen, ...Array.from(frozen.querySelectorAll('*'))];

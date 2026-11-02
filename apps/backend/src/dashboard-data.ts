@@ -1,6 +1,6 @@
 import { workbookDates } from './report-dates.js';
 
-export const datasets = ['amos', 'fak', 'aog', 'marshaling'];
+export const datasets = ['amos', 'fak', 'aog', 'marshaling', 'psvolume'];
 type DataEnv = { FILES: LocalFileStore; };
 type Manual = { dashboard: string; fileName: string; size: number; updatedAt: string; source: 'manual'|'project'; key: string };
 const pointer = (dashboard: string) => `dashboard-data/${dashboard}/latest.json`;

@@ -4,6 +4,7 @@ These files are the source of truth for the desktop edition:
 
 | Dashboard | Workbook | Data sheet |
 | --- | --- | --- |
+| PS Volume Analysis | `PS Volume Data.xlsx` | `Data` |
 | AMOS | `AMOS.xlsx` | `AMOS Data` |
 | AOG Delivery | `AOG.xlsm` | `AOG Data Automated` |
 | FAK | `FAK.xlsx` | `FAK Data Automated` |
@@ -18,7 +19,7 @@ The workbooks were moved from OneDrive; their data sheets use the names above. B
 workbooks are excluded from Git. Back up this folder with your project.
 
 When run from `dist/portable`, the app reads this project folder directly; no
-rebuild is required after workbook edits. The builder also copies the four files
+rebuild is required after workbook edits. The builder also copies the five files
 to `dist/portable/dashboard-sources` for use when moving the app elsewhere.
 That standalone copy becomes the source folder when the project folder is absent.
 Use **File → Open Excel source folder** to open the active folder.

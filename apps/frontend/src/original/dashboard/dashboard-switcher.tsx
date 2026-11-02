@@ -7,6 +7,7 @@ const dashboards = [
   { key: "aog", label: "AOG Delivery" },
   { key: "fak", label: "FAK Analysis" },
   { key: "marshaling", label: "Marshaling" },
+  { key: "psvolume", label: "PS Volume Analysis" },
   { key: "permits", label: "Security Permits" },
 ];
 

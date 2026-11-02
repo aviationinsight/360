@@ -7,9 +7,9 @@ import JSZip from 'jszip';
 import {importSourceWorkbooks,sourceWorkbooks} from '../scripts/portable/source-workbooks.js';
 
 async function workbook(dashboard:string,date='2026-10-29'){
- const zip=new JSZip(),sheet=dashboard==='amos'?'AMOS Data':dashboard==='aog'?'AOG Data Automated':dashboard==='fak'?'FAK Data Automated':'Summary Marshaling Data';
- const headers=dashboard==='amos'?['Year ID','Month ID','Day ID']:[dashboard==='aog'?'Issued At':dashboard==='fak'?'DATE':'New Date'];
- const values=dashboard==='amos'?date.split('-'):[date];
+ const zip=new JSZip(),sheet=dashboard==='psvolume'?'Data':dashboard==='amos'?'AMOS Data':dashboard==='aog'?'AOG Data Automated':dashboard==='fak'?'FAK Data Automated':'Summary Marshaling Data';
+ const headers=dashboard==='psvolume'?['No','From Store (New)','From Store','Issued At','Drop Area']:dashboard==='amos'?['Year ID','Month ID','Day ID']:[dashboard==='aog'?'Issued At':dashboard==='fak'?'DATE':'New Date'];
+ const values=dashboard==='psvolume'?['1','A005','A005',date,'LINE 601']:dashboard==='amos'?date.split('-'):[date];
  const row=(cells:string[],n:number)=>`<row>${cells.map((v,i)=>`<c r="${String.fromCharCode(65+i)}${n}" t="inlineStr"><is><t>${v}</t></is></c>`).join('')}</row>`;
  zip.file('xl/workbook.xml',`<workbook><sheets><sheet name="${sheet}" r:id="rId1"/></sheets></workbook>`);
  zip.file('xl/_rels/workbook.xml.rels','<Relationships><Relationship Id="rId1" Target="worksheets/sheet1.xml"/></Relationships>');
@@ -22,7 +22,7 @@ test('cold start imports sources, skips identical files, restores overrides and 
  const store={get:async(key:string)=>{const bytes=saved.get(key);return bytes?{json:async<T>()=>JSON.parse(bytes.toString()) as T}:null;},head:async(key:string)=>saved.has(key),put:async(key:string,value:ArrayBuffer|Uint8Array|string)=>{writes++;saved.set(key,typeof value==='string'?Buffer.from(value):Buffer.from(value as Uint8Array));}};
  try{
   for(const [dashboard,name] of sourceWorkbooks)await writeFile(join(directory,name),await workbook(dashboard));
-  assert.equal((await importSourceWorkbooks(directory,store)).filter(s=>s.changed).length,4);
+  assert.equal((await importSourceWorkbooks(directory,store)).filter(s=>s.changed).length,5);
   writes=0;
   assert.ok((await importSourceWorkbooks(directory,store)).every(s=>!s.changed));assert.equal(writes,0);
   await writeFile(join(directory,'AOG.xlsm'),await workbook('aog','2026-10-30'));

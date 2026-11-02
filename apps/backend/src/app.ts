@@ -56,7 +56,7 @@ for(const [route,kind] of [['/api/login','general'],['/api/employee-login','empl
  });
 }
 app.post('/api/logout',async c=>{const r=await auth.api.signOut({headers:c.req.raw.headers,asResponse:true});const h=new Headers({Location:'/'});for(const cookie of r.headers.getSetCookie())h.append('Set-Cookie',cookie);return new Response(null,{status:303,headers:h})});
-const permissionBody=z.object({name:z.string().trim().min(1).max(120),canAmos:z.boolean().default(false),canAog:z.boolean().default(false),canFak:z.boolean().default(false),canMarshaling:z.boolean().default(false),canPermits:z.boolean().default(false),canExport:z.boolean().default(false),isAdmin:z.boolean().default(false),active:z.boolean().default(true),password:z.string().max(128).optional(),email:z.string().email().optional()});
+const permissionBody=z.object({name:z.string().trim().min(1).max(120),canAmos:z.boolean().default(false),canAog:z.boolean().default(false),canFak:z.boolean().default(false),canMarshaling:z.boolean().default(false),canPsvolume:z.boolean().default(false),canPermits:z.boolean().default(false),canExport:z.boolean().default(false),isAdmin:z.boolean().default(false),active:z.boolean().default(true),password:z.string().max(128).optional(),email:z.string().email().optional()});
 async function applyPermissions(id:string,b:z.infer<typeof permissionBody>){for(const key of dashboardKeys){const field=('can'+key[0].toUpperCase()+key.slice(1)) as keyof typeof b;await db.insert(permission).values({userId:id,dashboard:key,allowed:Boolean(b[field])}).onConflictDoUpdate({target:[permission.userId,permission.dashboard],set:{allowed:Boolean(b[field])}})}}
 app.use('/api/admin/*',async(c,next)=>{if(c.get('principal')?.role!=='admin')return c.json({error:'Forbidden'},403);await next()});
 app.get('/api/admin/users',async c=>{const users=await db.select().from(user).where(sql`username != 'executive.portal'`);const grants=await db.select().from(permission);return c.json({users:users.map(u=>({id:u.legacyId||u.id,name:u.name,username:u.username,email:u.email.endsWith('@legacy.invalid')?null:u.email,is_admin:Number(u.role==='admin'),can_export:Number(u.canExport),active:Number(u.active),created_at:u.createdAt.toISOString(),updated_at:u.updatedAt.toISOString(),...Object.fromEntries(dashboardKeys.map(k=>['can_'+k,Number(grants.some(g=>g.userId===u.id&&g.dashboard===k&&g.allowed))]))}))})});
@@ -65,13 +65,15 @@ app.patch('/api/admin/users/:id',async c=>{const b=permissionBody.parse(await c.
 app.delete('/api/admin/users/:id',async c=>{const raw=c.req.param('id');const u=(await db.select().from(user).where(/^\d+$/.test(raw)?eq(user.legacyId,Number(raw)):eq(user.id,raw)))[0];if(!u)return c.json({error:'Not found'},404);if(u.id===c.get('principal')!.id)return c.json({error:'Cannot delete your own account'},409);await db.delete(user).where(eq(user.id,u.id));return c.json({ok:true})});
 app.on(['GET','POST'],'/api/admin/dashboard-data',c=>dataAdmin(c.req.raw,env));
 app.get('/api/dashboard-sync/:dashboard/:resource',async c=>{
- const d=c.req.param('dashboard'),resource=c.req.param('resource');if(!['amos','aog','fak','marshaling'].includes(d)||!['metadata','file'].includes(resource))return c.json({error:'Not found'},404);
+ const d=c.req.param('dashboard'),resource=c.req.param('resource');if(!['amos','aog','fak','marshaling','psvolume'].includes(d)||!['metadata','file'].includes(resource))return c.json({error:'Not found'},404);
  const p=c.get('principal');if(!p)return c.json({error:'Unauthorized'},401);if(!p.permissions[d as keyof typeof p.permissions])return c.json({error:'Forbidden'},403);
+ if(c.req.query('export')==='1'&&!p.canExport)return c.json({error:'Export forbidden'},403);
  if(resource==='metadata')return c.json({success:true,dashboard:d,metadata:(await currentData(env,d)).metadata});const response=await currentFile(env,d);if(!response.ok)return c.json({error:'Excel temporarily unavailable'},502);return new Response(response.body,{headers:{'Content-Type':'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet','Cache-Control':'no-store'}});
 });
 app.post('/api/dashboard-sync/client-event',async c=>{if(!c.get('principal'))return c.json({error:'Unauthorized'},401);z.object({dashboard:z.string().max(12),status:z.string().max(24)}).passthrough().parse(await c.req.json());return c.body(null,204)});
 app.get('/secure-dashboard',async c=>{
  const d=c.req.query('tab')||'amos',p=c.get('principal');if(!dashboardKeys.includes(d as never))return c.json({error:'Not found'},404);if(!p)return c.redirect('/login',303);if(p&&!p.permissions[d as keyof typeof p.permissions])return c.json({error:'Forbidden'},403);if(c.req.query('export')==='1'&&!p?.canExport)return c.json({error:'Export forbidden'},403);
+ if(d==='psvolume')return c.redirect('/dashboard?tab=psvolume',302);
  let html=await privateDashboard(d);
  if(d!=='permits'){
   // Do not send other departments' embedded baseline records to restricted accounts.

@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { UploadCloud, FileSpreadsheet, CheckCircle2 } from 'lucide-react';
 
-const dashboards = [['amos', 'AMOS'], ['fak', 'FAK'], ['aog', 'AOG'], ['marshaling', 'Marshaling']];
+const dashboards = [['amos', 'AMOS'], ['fak', 'FAK'], ['aog', 'AOG'], ['marshaling', 'Marshaling'], ['psvolume', 'PS Volume Analysis']];
 type Metadata = { fileName?: string; updatedAt?: string; source?: string };
 export function DashboardUploads() {
   const [metadata, setMetadata] = useState<Record<string, Metadata | null>>({});

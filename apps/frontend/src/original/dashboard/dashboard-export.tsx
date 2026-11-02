@@ -4,12 +4,14 @@ import { useEffect, useRef, useState } from "react";
 import { Check, Download, Image as ImageIcon, Presentation, X } from "lucide-react";
 import { renderPresentation } from "./presentation-capture";
 import JSZip from "jszip";
+import { capturePsVolume } from "./ps-volume-export";
 
 const dashboards = [
   { key: "amos", label: "AMOS Picking" },
   { key: "aog", label: "AOG Delivery" },
   { key: "fak", label: "FAK Analysis" },
   { key: "marshaling", label: "Marshaling" },
+  { key: "psvolume", label: "PS Volume Analysis" },
 ];
 
 const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -75,6 +77,7 @@ export function DashboardExport({ current, allowed }: { current: string; allowed
   }, [open, selected]);
 
   async function captureDashboard(key: string, boundsOnly = false) {
+    if (key === 'psvolume') return capturePsVolume(boundsOnly ? undefined : rangeFor(key));
     const host = document.createElement("iframe");
     host.className = "export-capture-frame";
     host.style.cssText = "position:fixed;left:-20000px;top:0;width:1920px;height:1080px;border:0;";

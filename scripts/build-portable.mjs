@@ -15,7 +15,7 @@ const buildId=new Date().toISOString().replace(/\D/g,'');
 const work=join(root,'dist','portable-build',buildId),stage=join(work,'app');
 const output=join(root,'dist','portable');
 await mkdir(stage,{recursive:true});await mkdir(output,{recursive:true});
-for(const name of ['AMOS.xlsx','AOG.xlsm','FAK.xlsx','MARSHALING.xlsx']){
+for(const name of ['AMOS.xlsx','AOG.xlsm','FAK.xlsx','MARSHALING.xlsx','PS Volume Data.xlsx']){
  await stat(join(root,'data','dashboard-sources',name));
 }
 console.log('Building the local interface...');
@@ -56,7 +56,7 @@ for(const name of await readdir(join(stage,'private'))){
 const indexPath=join(stage,'public','index.html');await writeFile(indexPath,localFonts(await readFile(indexPath,'utf8')));
 await writeFile(join(stage,'build.json'),JSON.stringify({buildId,node:process.version,platform:'win32-x64',offline:true},null,2));
 await mkdir(join(output,'dashboard-sources'),{recursive:true});
-for(const name of ['AMOS.xlsx','AOG.xlsm','FAK.xlsx','MARSHALING.xlsx'])await cp(join(root,'data','dashboard-sources',name),join(output,'dashboard-sources',name));
+for(const name of ['AMOS.xlsx','AOG.xlsm','FAK.xlsx','MARSHALING.xlsx','PS Volume Data.xlsx'])await cp(join(root,'data','dashboard-sources',name),join(output,'dashboard-sources',name));
 if(desktop){
  console.log('Packaging the Electron desktop application...');
  const electron=join(root,'node_modules','electron','dist');

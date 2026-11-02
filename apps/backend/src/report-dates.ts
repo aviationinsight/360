@@ -87,7 +87,7 @@ export async function workbookDates(buffer: ArrayBuffer, dashboard: string): Pro
   const workbook=await read('xl/workbook.xml'), rels=await read('xl/_rels/workbook.xml.rels');
   const sharedFile=files.get('xl/sharedStrings.xml');
   const shared=new Map<number,string>();let stringIndex=0;
-  const headers=new Set(['yearid','monthid','dayid','date','issuedat','newdate']);
+  const headers=new Set(['yearid','monthid','dayid','date','issuedat','newdate','no','fromstorenew','fromstore','droparea']);
   if(sharedFile)await xmlElements(sharedFile,'si',xml=>{
     const value=texts(xml);
     // Remarks/descriptions are not needed to validate primary reporting dates.
@@ -98,7 +98,7 @@ export async function workbookDates(buffer: ArrayBuffer, dashboard: string): Pro
     stringIndex++;
   });
   const sheets=Array.from(workbook.matchAll(/<sheet\s([^>]+)\/?\s*>/g),m=>({name:attr(m[1],'name'),id:attr(m[1],'r:id')}));
-  const sheet = dashboard==='amos' ? sheets.find(s=>['amosdata','amosfile'].includes(normalized(s.name))) || sheets[0] : dashboard==='fak' ? sheets.find(s=>['fakdataautomated','fakautomatednew'].includes(normalized(s.name))) : dashboard==='aog' ? sheets.find(s=>['aogdataautomated','automated'].includes(normalized(s.name))) : sheets.find(s=>['summarymarshalingdata','summry','summary'].includes(normalized(s.name)));
+  const sheet = dashboard==='amos' ? sheets.find(s=>['amosdata','amosfile'].includes(normalized(s.name))) || sheets[0] : dashboard==='fak' ? sheets.find(s=>['fakdataautomated','fakautomatednew'].includes(normalized(s.name))) : dashboard==='psvolume' ? sheets.find(s=>normalized(s.name)==='data') : dashboard==='aog' ? sheets.find(s=>['aogdataautomated','automated'].includes(normalized(s.name))) : sheets.find(s=>['summarymarshalingdata','summry','summary'].includes(normalized(s.name)));
   if(!sheet)throw new Error(`Required ${dashboard} data sheet was not found`);
   const relation=Array.from(rels.matchAll(/<Relationship\s([^>]+)\/?\s*>/g),m=>m[1]).find(s=>attr(s,'Id')===sheet.id);
   if(!relation)throw new Error('Worksheet relationship not found');
@@ -117,14 +117,14 @@ export async function workbookDates(buffer: ArrayBuffer, dashboard: string): Pro
     }
     if(!columns){
       const mapping=Object.fromEntries(Object.entries(cells).map(([col,value])=>[normalized(value),col]));
-      if(dashboard==='amos' ? ['yearid','monthid','dayid'].every(k=>mapping[k]) : Boolean(mapping[dashboard==='fak'?'date':dashboard==='aog'?'issuedat':'newdate']))columns=mapping;
+      if(dashboard==='psvolume' ? ['no','fromstorenew','fromstore','issuedat','droparea'].every(k=>mapping[k]) : dashboard==='amos' ? ['yearid','monthid','dayid'].every(k=>mapping[k]) : Boolean(mapping[dashboard==='fak'?'date':(dashboard==='aog'||dashboard==='psvolume')?'issuedat':'newdate']))columns=mapping;
       return;
     }
     let value:unknown;
     if(dashboard==='amos'){
       const y=Number(cells[columns.yearid]),m=Number(cells[columns.monthid]),d=Number(cells[columns.dayid]);
       value=`${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-    } else value=cells[columns[dashboard==='fak'?'date':dashboard==='aog'?'issuedat':'newdate']];
+    } else value=cells[columns[dashboard==='fak'?'date':(dashboard==='aog'||dashboard==='psvolume')?'issuedat':'newdate']];
     const date=excelDate(value,date1904); if(date)result.add(date);
   });
   if(!columns||!result.size)throw new Error(`No valid primary reporting dates in ${dashboard}`);

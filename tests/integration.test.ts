@@ -22,4 +22,22 @@ test('RBAC protects data and embedded documents, not only UI',async()=>{const ad
 test('CSRF, anonymous sign-up, validation, and invalid report links are rejected',async()=>{assert.equal((await app.request('http://localhost:3000/api/admin/users',{method:'POST',headers:{cookie:adminCookie,'Content-Type':'application/json'},body:'{}'})).status,403);assert.equal((await request('/api/auth/sign-up/email','POST',{name:'x',email:'x@example.com',password:'password'})).status,403);assert.equal((await request('/api/admin/users','POST',{name:'x',username:'a',password:'short'},adminCookie)).status,400);assert.equal((await request('/api/reports/attachment/test_2026-09-12/fak.png?token=wrong')).status,404)});
 test('administrator CRUD, permissions, invalid password atomicity, and deactivation',async()=>{const body={name:'Test User',username:'test.user',password:'test-only-password',canFak:true};assert.equal((await request('/api/admin/users','POST',body,adminCookie)).status,201);const list=await(await request('/api/admin/users','GET',undefined,adminCookie)).json();const u=list.users.find((u:any)=>u.username==='test.user');assert.ok(u);assert.equal('password_hash' in u,false);assert.equal((await request('/api/admin/users/'+u.id,'PATCH',{...body,name:'Must not apply',password:'bad'},adminCookie)).status,400);const list2=await(await request('/api/admin/users','GET',undefined,adminCookie)).json();assert.equal(list2.users.find((v:any)=>v.id===u.id).name,'Test User');assert.equal((await request('/api/admin/users/'+u.id,'DELETE',undefined,adminCookie)).status,200)});
 test('wrong workbook never replaces data; private storage prevents traversal',async()=>{const {objects}=await import('../apps/backend/src/storage.js');await assert.rejects(()=>objects.put('../outside.txt','x'));await objects.put('test/item.json','{"ok":true}');assert.deepEqual(await(await objects.get('test/item.json'))!.json(),{ok:true});const form=new FormData();form.set('dashboard','fak');form.set('file',new File(['not an Excel file'],'invalid.xlsx'));const r=await app.request('http://localhost:3000/api/admin/dashboard-data',{method:'POST',headers:{origin,cookie:adminCookie},body:form});assert.equal(r.status,400);assert.equal(await objects.get('dashboard-data/fak/latest.json'),null)});
+test('PS Volume uses server-side permissions for files, metadata and direct navigation', async()=>{
+ assert.equal((await request('/api/dashboard-sync/psvolume/metadata')).status,401);
+ assert.equal((await request('/api/dashboard-sync/psvolume/metadata','GET',undefined,employeeCookie)).status,403);
+ assert.equal((await request('/api/dashboard-sync/psvolume/file','GET',undefined,employeeCookie)).status,403);
+ assert.equal((await request('/secure-dashboard?tab=psvolume','GET',undefined,employeeCookie)).status,403);
+ assert.equal((await request('/api/dashboard-sync/psvolume/metadata','GET',undefined,adminCookie)).status,200);
+ assert.equal((await request('/secure-dashboard?tab=psvolume','GET',undefined,adminCookie)).headers.get('location'),'/dashboard?tab=psvolume');
+ const body={name:'PS analyst',username:'ps.analyst',password:'test-only-password',canPsvolume:true};
+ assert.equal((await request('/api/admin/users','POST',body,adminCookie)).status,201);
+ const login=await request('/api/auth/sign-in/username','POST',{username:body.username,password:body.password});
+ const cookie=login.headers.getSetCookie().map((s:string)=>s.split(';')[0]).join('; ');
+ const me=await(await request('/api/me','GET',undefined,cookie)).json();
+ assert.equal(me.permissions.psvolume,true);assert.equal(me.permissions.amos,false);
+ assert.equal((await request('/api/dashboard-sync/psvolume/metadata','GET',undefined,cookie)).status,200);
+ assert.equal((await request('/api/dashboard-sync/psvolume/metadata?export=1','GET',undefined,cookie)).status,403);
+ assert.equal((await request('/api/dashboard-sync/psvolume/file?export=1','GET',undefined,cookie)).status,403);
+ assert.equal((await request('/api/dashboard-sync/psvolume/metadata?export=1','GET',undefined,adminCookie)).status,200);
+});
 test('logout revokes session',async()=>{assert.equal((await request('/api/logout','POST',undefined,employeeCookie)).status,303);assert.equal((await request('/api/me','GET',undefined,employeeCookie)).status,401)});
