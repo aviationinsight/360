@@ -88,7 +88,8 @@ if(desktop){
  };
  grantRead(output,appRead);
  for(const entry of await readdir(output,{withFileTypes:true})){
-  if(entry.isFile())grantRead(join(output,entry.name),appRead);
+  // Runtime logs are not application assets and may be owned or locked by a prior run.
+  if(entry.isFile()&&!entry.name.toLowerCase().endsWith('.log'))grantRead(join(output,entry.name),appRead);
  }
  for(const name of ['resources','locales'])grantRead(join(output,name),assetRead);
 }else{

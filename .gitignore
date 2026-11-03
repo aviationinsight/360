@@ -10,3 +10,5 @@ artifacts/
 
 data/dashboard-sources/*.xlsx
 data/dashboard-sources/*.xlsm
+
+local-dev.*.log
