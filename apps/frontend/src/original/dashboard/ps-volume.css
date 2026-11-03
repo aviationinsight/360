@@ -17,8 +17,8 @@
 .ps-kpi>div{font-size:14px;font-weight:700;color:#71565d}
 .ps-kpi small{font-size:13px;line-height:1.5;color:#7e626a}
 .ps-kpi strong{margin:10px 0 7px}
-.ps-summary-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.12fr);gap:14px;align-items:stretch;margin-bottom:16px}
-.ps-comparisons{grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr);gap:12px;min-width:0}
+.ps-summary-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px;align-items:stretch;margin-bottom:16px}
+.ps-comparisons{grid-template-columns:repeat(2,minmax(0,1fr));gap:15px;min-width:0}
 .ps-summary-row .ps-panel{margin-bottom:0;padding:16px 12px}
 .ps-panel-title{gap:6px;margin-bottom:12px;align-items:flex-start}
 .ps-panel-title h3{font-size:15px;font-weight:800;line-height:1.35}
@@ -36,5 +36,5 @@
 .ps-trend text.ps-point-label{font-size:11px;font-weight:800;paint-order:stroke;stroke:#fff;stroke-width:3px;stroke-linejoin:round;font-variant-numeric:tabular-nums}
 .ps-kpi-2>div,.ps-kpi-2 small{color:#ffe2e8}
 @media(min-width:1800px){.ps-main{margin:0 auto}.ps-chart{max-height:250px}.ps-trend{max-height:290px}.ps-distribution th,.ps-distribution td{padding:10px 8px}.ps-distribution table{font-size:12px}}
-@media(max-width:1250px){.ps-summary-row{grid-template-columns:1fr}.ps-summary-row .ps-panel-title{min-height:0}.ps-comparisons{grid-template-columns:1fr 1fr}.ps-chart{height:215px}.ps-distribution table{font-size:12px}.ps-distribution th,.ps-distribution td{padding:9px 10px}.ps-summary-row .ps-legend{min-height:0;font-size:10px}}
+@media(max-width:1100px){.ps-summary-row{grid-template-columns:1fr}.ps-summary-row .ps-panel-title{min-height:0}.ps-comparisons{grid-template-columns:1fr 1fr}.ps-chart{height:215px}.ps-distribution table{font-size:12px}.ps-distribution th,.ps-distribution td{padding:9px 10px}.ps-summary-row .ps-legend{min-height:0;font-size:10px}}
 @media(max-width:700px){.ps-main{padding:18px 12px}.ps-kpi{padding:14px 12px}.ps-kpi>div{font-size:13px}.ps-kpi small{font-size:12px}.ps-comparisons{grid-template-columns:1fr}.ps-chart{height:220px;max-height:220px}.ps-summary-row .ps-panel{padding:16px}.ps-trend-panel{padding:16px 12px}.ps-trend{min-width:1100px}.ps-distribution th,.ps-distribution td{padding:9px 8px}}
