@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { CalendarDays, RefreshCw, BarChart3, Package, Warehouse, Percent } from 'lucide-react';
-import { analyzePs, dayOffset, parsePsWorkbook, type ExcelReader, type PsRow, type Volume } from './ps-volume-model';
+import { analyzePs, dayOffset, parsePsWorkbook, redTrendAnalysis, type ExcelReader, type PsRow, type Volume } from './ps-volume-model';
 import './ps-volume.css';
 
 declare global { interface Window { XLSX?: ExcelReader } }
@@ -32,13 +32,23 @@ function Columns({ groups, title }: { groups: { label: string; hbco: number; a00
       </g>)}<text x={center} y="210" textAnchor="middle">{group.label}</text></g>; })}
   </svg>;
 }
-function Trend({ days, presentation = false }: { days: ({ date: string } & Volume)[]; presentation?: boolean }) {
+function Trend({ days, presentation = false, trends }: { days: ({ date: string } & Volume)[]; presentation?: boolean; trends?: ReturnType<typeof redTrendAnalysis> }) {
   const width = presentation ? 1830 : 1200;
   const max = Math.max(1, ...days.flatMap(d => [d.combined202, d.a005]));
   const x = (i: number) => days.length === 1 ? width / 2 : 65 + i * (width - 100) / (days.length - 1);
   const y = (n: number) => 230 - n / max * 175;
   return <svg className="ps-trend" viewBox={`0 0 ${width} ${presentation ? 270 : 285}`} role="img" aria-label="Daily picking slip volume for 202 (HB and CO) and A005">
     {[0, 1, 2, 3, 4].map(i => <g key={i}><line x1="65" x2={width - 35} y1={230 - i * 44} y2={230 - i * 44} stroke="#eee3e4" /><text x="54" y={234 - i * 44} textAnchor="end">{number(Math.round(max * i / 4))}</text></g>)}
+    {trends && <svg x="65" y="55" width={width - 100} height="175" viewBox={`65 55 ${width - 100} 175`} overflow="hidden">
+      {trends.linear.length > 1 && <line data-testid="ps-linear-trend" x1={x(0)} y1={y(trends.linear[0])} x2={x(days.length - 1)} y2={y(trends.linear.at(-1)!)} stroke="#a35a64" strokeWidth="1.5" strokeDasharray="7 5"><title>202 (HB &amp; CO) linear trend</title></line>}
+      <path data-testid="ps-sma-trend" d={trends.sma.reduce((path, value, i, values) => {
+        if (value === null) return path;
+        const previous = values[i - 1];
+        if (previous === null || previous === undefined) return `M ${x(i)} ${y(value)}`;
+        const middle = (x(i - 1) + x(i)) / 2;
+        return `${path} C ${middle} ${y(previous)}, ${middle} ${y(value)}, ${x(i)} ${y(value)}`;
+      }, '')} fill="none" stroke="#8b1630" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><title>202 (HB &amp; CO) 7-day simple moving average</title></path>
+    </svg>}
     {([{ key: 'combined202', color: '#e60a23', name: '202 (HB & CO)' }, { key: 'a005', color: '#0e9384', name: 'A005' }] as const).map(series => <g key={series.key}>
       <polyline points={days.map((d, i) => `${x(i)},${y(d[series.key])}`).join(' ')} fill="none" stroke={series.color} strokeWidth="3" strokeLinejoin="round" />
       {days.map((d, i) => {
@@ -97,6 +107,7 @@ export function PsVolumeDashboard({ allowed, snapshot }: { allowed: boolean; sna
     return () => { disposed = true; clearInterval(timer); document.removeEventListener('visibilitychange', onVisible); };
   }, [allowed, snapshot]);
   const analysis = useMemo(() => range.from && range.to ? analyzePs(rows, range.from, range.to) : null, [rows, range]);
+  const trends = useMemo(() => analysis ? redTrendAnalysis(analysis.trend) : null, [analysis]);
   if (!allowed) return <section className="ps-access" role="alert">Access restricted. Contact your administrator to enable PS Volume Analysis.</section>;
   const min = rows[0]?.date || '', max = rows.at(-1)?.date || '';
   const span = min && max ? Math.round((Date.parse(max) - Date.parse(min)) / 86400000) : 0;
@@ -128,7 +139,8 @@ export function PsVolumeDashboard({ allowed, snapshot }: { allowed: boolean; sna
           <article className="ps-panel"><div className="ps-panel-title"><h3>LINE 601 &amp; TERMINAL</h3><span>DESTINATION COMPARISON</span></div><Legend /><Columns title="PS volumes to LINE 601 and TERMINAL" groups={['LINE 601', 'TERMINAL'].map(label => { const d = analysis.destinations.find(d => d.destination.toUpperCase() === label); return { label, hbco: d?.combined202 || 0, a005: d?.a005 || 0 }; })} /></article></section>
         <section className="ps-panel ps-distribution" aria-label="Destination Distribution"><div className="ps-panel-title"><h3>Destination distribution</h3><span>FULL SELECTED PERIOD</span></div><div className="ps-table-scroll"><table><caption className="ps-sr-only">Picking slip volume by destination for the selected reporting period</caption><thead><tr>{['Drop Area', 'HB', 'CO', '202 (HB & CO)', 'A005', 'Total PS', 'A005 Share %'].map(name => <th key={name} scope="col">{name}</th>)}</tr></thead><tbody>{analysis.destinations.map(d => <tr key={d.destination}><th scope="row">{d.destination}</th><Cells data={d} /></tr>)}{!analysis.destinations.length && <tr><td colSpan={7}>No destinations in the selected period.</td></tr>}</tbody><tfoot><tr><th scope="row">Grand Total</th><Cells data={analysis.summary} /></tr></tfoot></table></div></section>
         </div>
-        <section className="ps-panel ps-trend-panel" aria-label="Daily Volume Trend"><div className="ps-panel-title"><h3>Daily volume trend</h3><span>{analysis.trendFrom > range.from ? 'LATEST 31 DAYS OF SELECTION' : 'FULL SELECTED PERIOD'}</span></div><div className="ps-trend-sub"><p>{labelDate(analysis.trendFrom)} — {labelDate(range.to)} · Calendar days, including zero-volume days</p><Legend /></div><Trend days={analysis.trend} presentation={!!snapshot} /></section>
+        {!snapshot && <section className="ps-panel ps-trend-panel" aria-label="Daily Volume Trend"><div className="ps-panel-title"><h3>Daily volume trend</h3><span>{analysis.trendFrom > range.from ? 'LATEST 31 DAYS OF SELECTION' : 'FULL SELECTED PERIOD'}</span></div><div className="ps-trend-sub"><p>{labelDate(analysis.trendFrom)} — {labelDate(range.to)} · Calendar days, including zero-volume days</p><Legend /></div>{trends && <div className="ps-trend-analysis"><div className="ps-trend-keys"><span><i className="ps-sma-key" />202 7-day SMA</span><span><i className="ps-linear-key" />202 linear trend</span></div><div className="ps-change" title="202 (HB & CO): latest 7 calendar days versus previous 7 calendar days"><span>7D Volume Change (%)</span><strong data-testid="ps-7d-change">{trends.change === null ? 'N/A' : (trends.change > 0 ? '+' : '') + trends.change.toFixed(2) + '%'}</strong></div></div>}<Trend days={analysis.trend} presentation={!!snapshot} trends={trends || undefined} /></section>}
+        <section className="ps-panel ps-trend-panel" aria-label="Daily Volume Trend — TERMINAL + LINE 601"><div className="ps-panel-title"><h3>Daily volume trend — TERMINAL + LINE 601</h3><span>{analysis.trendFrom > range.from ? 'LATEST 31 DAYS OF SELECTION' : 'FULL SELECTED PERIOD'}</span></div><div className="ps-trend-sub"><p>{labelDate(analysis.trendFrom)} — {labelDate(range.to)} · TERMINAL + LINE 601 combined · Calendar days, including zero-volume days</p><Legend /></div><Trend days={analysis.terminalLine601Trend} presentation={!!snapshot} /></section>
       </>}
       <footer className="ps-footer">AVIATION INSIGHT · PS VOLUME ANALYSIS <span>Unique picking slips · Excel reporting dates</span></footer>
     </div>

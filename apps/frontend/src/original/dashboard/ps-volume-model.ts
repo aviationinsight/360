@@ -61,6 +61,20 @@ export function volume(rows: PsRow[]): Volume {
 export function dayOffset(day: string, offset: number) {
   const date = new Date(day + 'T00:00:00Z'); date.setUTCDate(date.getUTCDate() + offset); return date.toISOString().slice(0, 10);
 }
+export function redTrendAnalysis(days: { combined202: number }[]) {
+  const values = days.map(day => day.combined202), count = values.length;
+  const sma = values.map((_, i) => i < 6 ? null : values.slice(i - 6, i + 1).reduce((sum, n) => sum + n, 0) / 7);
+  const meanX = (count - 1) / 2;
+  const meanY = count ? values.reduce((sum, n) => sum + n, 0) / count : 0;
+  let numerator = 0, denominator = 0;
+  values.forEach((value, i) => { numerator += (i - meanX) * (value - meanY); denominator += (i - meanX) ** 2; });
+  const slope = denominator ? numerator / denominator : 0;
+  const linear = count >= 2 ? values.map((_, i) => meanY + slope * (i - meanX)) : [];
+  const latest = values.slice(-7).reduce((sum, n) => sum + n, 0);
+  const previous = values.slice(-14, -7).reduce((sum, n) => sum + n, 0);
+  const change = count >= 14 && previous > 0 ? (latest - previous) / previous * 100 : null;
+  return { sma, linear, change };
+}
 export function analyzePs(rows: PsRow[], from: string, to: string) {
   const selected = rows.filter(row => row.date >= from && row.date <= to);
   const byDestination = new Map<string, PsRow[]>();
@@ -69,7 +83,11 @@ export function analyzePs(rows: PsRow[], from: string, to: string) {
   const trendFrom = from > dayOffset(to, -30) ? from : dayOffset(to, -30);
   const days = new Map<string, PsRow[]>();
   for (const row of selected) if (row.date >= trendFrom) { const day = days.get(row.date) || []; day.push(row); days.set(row.date, day); }
-  const trend = [];
-  for (let day = trendFrom; day <= to; day = dayOffset(day, 1)) trend.push({ date: day, ...volume(days.get(day) || []) });
-  return { summary: volume(selected), destinations, trend, trendFrom };
+  const trend = [], terminalLine601Trend = [];
+  for (let day = trendFrom; day <= to; day = dayOffset(day, 1)) {
+    const dailyRows = days.get(day) || [];
+    trend.push({ date: day, ...volume(dailyRows) });
+    terminalLine601Trend.push({ date: day, ...volume(dailyRows.filter(row => ['TERMINAL', 'LINE 601'].includes(row.destination.trim().toUpperCase()))) });
+  }
+  return { summary: volume(selected), destinations, trend, terminalLine601Trend, trendFrom };
 }

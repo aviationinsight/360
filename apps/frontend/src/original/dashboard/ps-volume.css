@@ -5,6 +5,10 @@
 @media(max-width:700px){.ps-dashboard{display:block}.ps-sidebar{padding:20px}.ps-sidebar h1{font-size:25px;margin:12px 0}.ps-sidebar h1 br{display:none}.ps-sidebar h1 em{margin-left:6px}.ps-sidebar>p{margin-bottom:16px}.ps-filter-title{padding-top:15px;margin-bottom:10px}.ps-sidebar input[type=date]{max-width:100%}.ps-sliders{margin:12px 0}.ps-source{margin-top:18px;padding-top:15px}.ps-main{padding:20px 12px}.ps-heading{flex-wrap:wrap}.ps-kpis{gap:10px}.ps-kpi{padding:14px}.ps-kpi strong{font-size:29px}.ps-panel{padding:16px 12px}.ps-trend{min-width:580px}.ps-panel:has(.ps-trend){overflow-x:auto}.ps-footer{flex-wrap:wrap}.ps-chart text{font-size:13px}}
 @media(prefers-reduced-motion:reduce){.ps-spinning{animation:none}}
 
+.ps-trend-analysis{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-top:10px;color:#8d7379;font-size:10px}
+.ps-trend-keys,.ps-trend-keys>span{display:flex;align-items:center;gap:7px}.ps-trend-keys{gap:18px;flex-wrap:wrap}
+.ps-sma-key,.ps-linear-key{display:inline-block;width:24px;border-top:4px solid #8b1630;border-radius:2px}.ps-linear-key{border-top:2px dashed #a35a64}
+.ps-change{display:flex;gap:10px;align-items:center;padding:6px 10px;border:1px solid #ece3e2;border-radius:7px;background:#fcf7f8}.ps-change strong{color:#8b1630;font-size:12px;font-variant-numeric:tabular-nums}
 /* Compact presentation layout: comparisons on the left, destination totals on the right. */
 .ps-main{padding:18px 22px}
 .ps-heading{margin-bottom:16px}

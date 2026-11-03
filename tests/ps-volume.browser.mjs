@@ -44,17 +44,48 @@ test('PS dashboard navigation, real workbook, date controls, updates, access and
     assert.equal(await page.getByTestId('ps-kpi-3').innerText(), (expectedA005 / expectedTotal * 100).toFixed(2) + '%');
     assert.equal(await page.locator('#ps-from').inputValue(), minDate);
     assert.equal(await page.locator('#ps-to').inputValue(), maxDate);
-    assert.equal(await page.locator('.ps-trend circle').count(), expectedDays * 2);
+    assert.equal(await page.locator('.ps-trend circle').count(), expectedDays * 4);
     assert.equal(await page.locator('tbody tr').count(), new Set(records.map(row => String(row[indexes['Drop Area']]).trim())).size);
     assert.ok((await page.locator('tfoot').innerText()).includes(format(expectedTotal)));
-    assert.equal(await page.locator('.ps-point-label').count(), expectedDays * 2);
+    assert.equal(await page.locator('.ps-point-label').count(), expectedDays * 4);
+    const destinationTrend = page.getByRole('region', { name: 'Daily Volume Trend — TERMINAL + LINE 601', exact: true });
+    assert.equal(await destinationTrend.count(), 1);
+    const allTrend = page.getByRole('region', { name: 'Daily Volume Trend', exact: true });
+    assert.equal(await allTrend.getByTestId('ps-sma-trend').count(), 1);
+    assert.equal(await allTrend.getByTestId('ps-linear-trend').count(), 1);
+    assert.equal(await destinationTrend.locator('.ps-trend-analysis').count(), 0);
+    const redValues = (await allTrend.locator('.ps-point-combined202').allTextContents()).map(n => Number(n.replaceAll(',', '')));
+    const latest = redValues.slice(-7).reduce((sum,n) => sum+n,0);
+    const previous = redValues.slice(-14,-7).reduce((sum,n) => sum+n,0);
+    const change = (latest - previous) / previous * 100;
+    assert.equal(await allTrend.getByTestId('ps-7d-change').innerText(), (change > 0 ? '+' : '') + change.toFixed(2) + '%');
+    await allTrend.screenshot({ path: 'artifacts/ps-volume-all-areas-trends.png' });
+    const expectedTrend = new Map();
+    const trendStart = new Date(Date.parse(maxDate) - (expectedDays - 1) * 86400000).toISOString().slice(0, 10);
+    for (const row of records) {
+      const date = dateOf(row);
+      if (date < trendStart || !['TERMINAL', 'LINE 601'].includes(String(row[indexes['Drop Area']]).trim().toUpperCase())) continue;
+      const totals = expectedTrend.get(date) || [0, 0];
+      totals[row[indexes['From Store']] === 'A005' ? 1 : 0]++;
+      expectedTrend.set(date, totals);
+    }
+    for (let i = 0; i < expectedDays; i++) {
+      const date = new Date(Date.parse(trendStart) + i * 86400000).toISOString().slice(0, 10);
+      const totals = expectedTrend.get(date) || [0, 0];
+      assert.equal(await destinationTrend.locator('.ps-point-combined202').nth(i).textContent(), format(totals[0]));
+      assert.equal(await destinationTrend.locator('.ps-point-a005').nth(i).textContent(), format(totals[1]));
+    }
+    await destinationTrend.screenshot({ path: 'artifacts/ps-volume-terminal-line601.png' });
     const placement = await page.evaluate(() => { const table = document.querySelector('.ps-distribution').getBoundingClientRect(); const charts = document.querySelector('.ps-comparisons').getBoundingClientRect(); return { sameRow: Math.abs(table.top - charts.top) < 2, right: table.left >= charts.right }; });
     assert.ok(placement.sameRow && placement.right, 'destination table must sit beside comparisons on desktop');
     await fs.mkdir('artifacts', { recursive: true });
     await page.screenshot({ path: 'artifacts/ps-volume-desktop.png', fullPage: true });
     await page.locator('#ps-from').fill(maxDate);
     await page.locator('#ps-to').fill(maxDate);
-    assert.equal(await page.locator('.ps-trend circle').count(), 2);
+    assert.equal(await page.locator('.ps-trend circle').count(), 4);
+    assert.equal(await page.getByTestId('ps-7d-change').innerText(), 'N/A');
+    assert.equal(await page.getByTestId('ps-linear-trend').count(), 0);
+    assert.equal(await page.getByTestId('ps-sma-trend').getAttribute('d'), '');
     const dayTotal = await page.getByTestId('ps-kpi-2').innerText();
     assert.notEqual(dayTotal, format(expectedTotal));
     updatedAt = '2026-11-02T19:01:00Z';

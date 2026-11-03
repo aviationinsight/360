@@ -3,11 +3,49 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { createContext, runInContext } from 'node:vm';
 import JSZip from 'jszip';
-import { analyzePs, parsePsGrid, parsePsWorkbook, psDate, type ExcelReader } from '../apps/frontend/src/original/dashboard/ps-volume-model.js';
+import { analyzePs, parsePsGrid, parsePsWorkbook, psDate, redTrendAnalysis, type ExcelReader } from '../apps/frontend/src/original/dashboard/ps-volume-model.js';
 import { workbookDates } from '../apps/backend/src/report-dates.js';
 import { dataAdmin, currentData } from '../apps/backend/src/dashboard-data.js';
 
 const headers = ['No', 'From Store (New)', 'From Store', 'Issued At', 'Drop Area'];
+test('red trends use seven calendar days and least-squares direction with signed weekly change', () => {
+  const increasing = Array.from({ length: 14 }, (_, i) => ({ combined202: i + 1 }));
+  const result = redTrendAnalysis(increasing);
+  assert.deepEqual(result.sma.slice(0, 6), Array(6).fill(null));
+  assert.equal(result.sma[6], 4);
+  assert.equal(result.sma[13], 11);
+  assert.deepEqual(result.linear, increasing.map(d => d.combined202));
+  assert.equal(result.change, 175);
+  assert.ok(redTrendAnalysis([...increasing].reverse()).change! < 0);
+  assert.equal(redTrendAnalysis(increasing.slice(0, 13)).change, null);
+  assert.equal(redTrendAnalysis(Array.from({ length: 14 }, () => ({ combined202: 0 }))).change, null);
+  assert.equal(redTrendAnalysis([{ combined202: 10 }]).linear.length, 0);
+  assert.equal(redTrendAnalysis(Array.from({ length: 14 }, (_, i) => ({ combined202: i < 7 ? 10 : 0 }))).change, -100);
+  const zerosIncluded = redTrendAnalysis([{ combined202: 7 }, ...Array.from({ length: 6 }, () => ({ combined202: 0 }))]);
+  assert.equal(zerosIncluded.sma[6], 1);
+});
+test('destination trend combines TERMINAL and LINE 601 per day and excludes other areas', () => {
+  const { rows } = parsePsGrid([headers,
+    [1, 'HB & CO', 'HB', '2026-10-01', 'TERMINAL'],
+    [2, 'HB & CO', 'CO', '2026-10-01', 'LINE 601'],
+    [3, 'A005', 'A005', '2026-10-01', 'TERMINAL'],
+    [4, 'A005', 'A005', '2026-10-01', 'LINE 601'],
+    [5, 'HB & CO', 'HB', '2026-10-01', 'OTHER'],
+    [6, 'A005', 'A005', '2026-10-01', 'OTHER'],
+    [7, 'A005', 'A005', '2026-10-03', ' terminal '],
+  ]);
+  const result = analyzePs(rows, '2026-10-01', '2026-10-03');
+  assert.deepEqual(result.terminalLine601Trend.map(d => [d.date, d.combined202, d.a005]), [
+    ['2026-10-01', 2, 2], ['2026-10-02', 0, 0], ['2026-10-03', 0, 1],
+  ]);
+  assert.equal(result.trend[0].total, 6);
+  assert.equal(result.summary.total, 7);
+  assert.equal(analyzePs(rows, '2026-10-03', '2026-10-03').terminalLine601Trend[0].total, 1);
+  const capped = analyzePs(rows, '2026-10-01', '2026-11-01');
+  assert.equal(capped.terminalLine601Trend.length, 31);
+  assert.deepEqual(capped.terminalLine601Trend.map(d => d.date), capped.trend.map(d => d.date));
+  assert.equal(capped.terminalLine601Trend.reduce((sum, d) => sum + d.total, 0), 1);
+});
 test('PS numbers deduplicate globally before date and destination filtering; totals use HB + CO', () => {
   const { rows, duplicates } = parsePsGrid([headers,
     [1, 'HB & CO', 'HB', '2026-10-01', 'LINE 601'],
